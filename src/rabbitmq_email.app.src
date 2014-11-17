@@ -1,0 +1,36 @@
+%
+% This Source Code Form is subject to the terms of the Mozilla Public
+% License, v. 2.0. If a copy of the MPL was not distributed with this
+% file, You can obtain one at http://mozilla.org/MPL/2.0/.
+%
+% Copyright (C) 2014 Petr Gotthard <petr.gotthard@centrum.cz>
+%
+
+{application, rabbitmq_email,
+    [{description, "AMQP to E-Mail Gateway"},
+    {vsn, "0.0.1"},
+    {modules, []},
+    {registered, []},
+    {mod, {rabbitmq_email_app, []}},
+    {env, [
+        % email to amqp configuration
+        {server_config, [
+            [{port, 2525}, {protocol, tcp}, {domain, "example.com"}, {address,{0,0,0,0}}]
+        ]},
+        {email_domains,
+            [{<<"example.com">>, {<<"/">>, <<"email-in">>}}
+        ]},
+        % amqp to email configuration
+        {email_queues,
+            [{{<<"/">>, <<"email-out">>}, <<"example.com">>}
+        ]},
+        {client_sender, "noreply@example.com"},
+        {client_config, [
+            {relay, "smtp.example.com"}
+        ]}
+    ]},
+    {applications, [kernel, stdlib, rabbit, amqp_client, gen_smtp, eiconv]}]}.
+
+% end of file
+
+                
