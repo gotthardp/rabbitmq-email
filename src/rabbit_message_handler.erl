@@ -24,12 +24,12 @@ init([]) ->
     {ok, Connection} = amqp_connection:start(#amqp_params_direct{}),
     {ok, Channel} = amqp_connection:open_channel(Connection),
 
+    {ok, Queues} = application:get_env(rabbitmq_email, email_queues),
     lists:foreach(
         fun({{VHost, Queue}, Domain}) ->
             Subscribe = #'basic.consume'{queue=Queue, consumer_tag=Domain, no_ack=true},
             #'basic.consume_ok'{} = amqp_channel:call(Channel, Subscribe)
-        end,
-        application:get_env(rabbitmq_email, email_queues, [])),
+        end, Queues),
 
     State = #state{channel = Channel},
     {ok, State}.
@@ -38,8 +38,8 @@ handle_call(_Msg, _From, State) ->
     {reply, unknown_command, State}.
 
 handle_cast({Reference, Domain, To, ContentType, Body}, #state{channel=Channel}=State) ->
-    {VHost, Exchange} = proplists:get_value(list_to_binary(Domain),
-        application:get_env(rabbitmq_email, email_domains, [])),
+    {ok, Domains} = application:get_env(rabbitmq_email, email_domains),
+    {VHost, Exchange} = proplists:get_value(list_to_binary(Domain), Domains),
 
     lists:foreach(
         fun(Address) ->

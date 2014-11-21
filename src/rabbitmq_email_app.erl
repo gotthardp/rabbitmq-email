@@ -21,11 +21,12 @@ stop(_State) ->
     ok.
 
 init([]) ->
+    {ok, ServerConfig} = application:get_env(rabbitmq_email, server_config),
     {ok, {{one_for_one, 3, 10},
         [{rabbit_message_handler, {rabbit_message_handler, start_link, []},
             permanent, 10000, worker, [mailer]},
         {rabbit_email_handler, {gen_smtp_server, start_link, [rabbit_email_handler,
-            application:get_env(rabbitmq_email, server_config, [])]},
+            ServerConfig]},
             permanent, 10000, worker, [mailer]}
         ]}}.
 

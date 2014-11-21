@@ -23,10 +23,9 @@ send_email(Address, Domain, Properties, Payload) ->
         % message body
         Payload}),
 
-    gen_smtp_client:send(
-            {application:get_env(rabbitmq_email, client_sender, "noreply@example.com"),
-            [Address], Message},
-        application:get_env(rabbitmq_email, client_config, [])).
+    {ok, Sender} = application:get_env(rabbitmq_email, client_sender),
+    {ok, ClientConfig} = application:get_env(rabbitmq_email, client_config),
+    gen_smtp_client:send({Sender, [Address], Message}, ClientConfig).
 
 get_content_type(undefined) ->
     {<<"text">>, <<"plain">>};
