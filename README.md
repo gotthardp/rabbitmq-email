@@ -1,6 +1,6 @@
 # SMTP Gateway Plugin for RabbitMQ
 
-This implementation  aims to replace the https://github.com/rabbitmq/rabbitmq-smtp.
+This implementation aims to replace the https://github.com/rabbitmq/rabbitmq-smtp.
 It is based on a more advanced [gen_smtp] (https://github.com/Vagabond/gen_smtp)
 rather than on [erlang-smtp] (https://github.com/tonyg/erlang-smtp).
 
@@ -24,8 +24,9 @@ routing key is examined to determine the target SMTP address.
  - routing key that includes the mailbox name only is combined with the domain
    name obtained from the consumer tag
 
+## Installation
 
-## Configuration
+### RabbitMQ Configuration
 Add the plug-in configuration section. See
 [RabbitMQ Configuration](https://www.rabbitmq.com/configure.html) for more details.
 
@@ -51,6 +52,45 @@ For example:
     ...
 ]}
 ```
+
+### Postfix Integration
+You may want to run a standard [Postfix](http://www.postfix.org) SMTP server on
+the same machine and forward to the RabbitMQ plug-in only some e-mail domains.
+
+- Edit `main.cf`
+  - Add the domains to be processed by RabbitMQ to the `relay_domains` list
+```
+relay_domains = $mydestination, example.com
+```
+  - Make sure the `transport_maps` file is enabled
+```
+transport_maps = hash:/etc/postfix/transport
+```
+
+- Add links to the plug-in to the `transport` file
+```
+example.com smtp:mail.example.com:2525
+.example.com smtp:mail.example.com:2525
+```
+
+### Installation from source
+
+First, download and build the following pre-requisites:
+ - [RabbitMQ gen_smtp Integration](https://github.com/gotthardp/rabbitmq-gen-smtp)
+ - [RabbitMQ eiconv Integration](https://github.com/gotthardp/rabbitmq-eiconv)
+
+Then, build the main RabbitMQ plug-in. See the
+[Plugin Development Guide](http://www.rabbitmq.com/plugin-development.html)
+for more details.
+
+    $ hg clone http://hg.rabbitmq.com/rabbitmq-public-umbrella
+    $ cd rabbitmq-public-umbrella
+    $ make co
+    $ make BRANCH=<tag> up_c
+    $ git clone https://github.com/gotthardp/rabbitmq-email.git
+    $ cd rabbitmq-email
+    $ make
+
 
 ## Copyright and Licensing
 
