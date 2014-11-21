@@ -17,6 +17,7 @@ send_email(Address, Domain, Properties, Payload) ->
     Message = mimemail:encode({Type, Subtype,
         % headers
         set_plain_header(<<"From">>, <<"noreply", $@, Domain/binary>>)++
+        set_plain_header(<<"To">>, Address)++
         set_plain_header(<<"Message-Id">>, Properties#'P_basic'.message_id),
         % parameters
         [],
