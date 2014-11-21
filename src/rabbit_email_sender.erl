@@ -25,7 +25,10 @@ send_email(Address, Domain, Properties, Payload) ->
 
     {ok, Sender} = application:get_env(rabbitmq_email, client_sender),
     {ok, ClientConfig} = application:get_env(rabbitmq_email, client_config),
-    gen_smtp_client:send({Sender, [Address], Message}, ClientConfig).
+    case gen_smtp_client:send({Sender, [Address], Message}, ClientConfig) of
+	{ok, _Pid} -> ok;
+	{error, Res} -> rabbit_log:error("message cannot be sent: ~w~n", [Res])
+    end.
 
 get_content_type(undefined) ->
     {<<"text">>, <<"plain">>};

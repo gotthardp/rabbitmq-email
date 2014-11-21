@@ -149,10 +149,7 @@ filter_body(Data) when is_binary(Data) ->
 
 filter_body({<<"multipart">>, Subtype, Header, Params, Parts}) ->
     % rabbit_log:info("Parsing multipart/~p~n", [Subtype]),
-    case lists:filtermap(
-            fun(Part) -> filter_body(Part) end,
-            filter_multipart(Subtype, Parts))
-    of
+    case filter_body_parts(filter_multipart(Subtype, Parts)) of
         [] ->
             false;
         [Part] ->
@@ -181,6 +178,16 @@ filter_body({<<"application">>, <<"ms-tnef">>, _H, _A, _P}) -> false;
 filter_body({T,S,_H,_A,_P} = Body) ->
     % rabbit_log:info("Parsing ~p/~p~n", [T, S]),
     {true, Body}.
+
+% lists:filtermap replacement for older Erlangs
+filter_body_parts(List1) ->
+    lists:foldr(fun(Elem, Acc) ->
+        case filter_body(Elem) of
+            false -> Acc;
+            true -> [Elem|Acc];
+            {true,Value} -> [Value|Acc]
+        end
+    end, [], List1).
 
 filter_multipart(<<"alternative">>, Parts) ->
     Best = lists:foldl(
