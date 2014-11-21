@@ -31,7 +31,7 @@ Add the plug-in configuration section. See
 [RabbitMQ Configuration](https://www.rabbitmq.com/configure.html) for more details.
 
 For example:
-```
+```erlang
 {rabbitmq_email, [
     % email to amqp configuration
     {server_config, [
@@ -59,19 +59,23 @@ the same machine and forward to the RabbitMQ plug-in only some e-mail domains.
 
 - Edit `main.cf`
   - Add the domains to be processed by RabbitMQ to the `relay_domains` list
-```
-relay_domains = $mydestination, example.com
-```
+
+    ```
+    relay_domains = $mydestination, example.com
+    ```
+
   - Make sure the `transport_maps` file is enabled
-```
-transport_maps = hash:/etc/postfix/transport
-```
+
+    ```
+    transport_maps = hash:/etc/postfix/transport
+    ```
 
 - Add links to the plug-in to the `transport` file
-```
-example.com smtp:mail.example.com:2525
-.example.com smtp:mail.example.com:2525
-```
+
+  ```
+  example.com smtp:mail.example.com:2525
+  .example.com smtp:mail.example.com:2525
+  ```
 
 ### Installation from source
 
