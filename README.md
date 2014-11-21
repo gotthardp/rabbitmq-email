@@ -15,14 +15,14 @@ the system. First, the address is split into a mailbox name and a domain part.
    AMQP virtual-host and AMQP exchange name
  - the mailbox name is mapped to an AMQP routing key
 
-The adapter also binds to a set of AMQP exchanges; each binding has a consumer
-tag that maps to a "default" domain name. When a message is consumed, its AMQP
-routing key is examined to determine the target SMTP address.
+The adapter also binds to a set of AMQP queues. Each queue is linked with a
+"default" domain name. When a message is consumed, its AMQP routing key is
+examined to determine the target SMTP address.
 
- - routing key that includes the domain part (i.e. the "@" character") is mapped
+ - routing key that includes a domain part (i.e. the "@" character") is mapped
    directly to an SMTP address
- - routing key that includes the mailbox name only is combined with the domain
-   name obtained from the consumer tag
+ - routing key that includes the mailbox name only (i.e. without "@") is combined
+   with the "default" domain name assigned to the queue
 
 ## Installation
 
@@ -33,19 +33,24 @@ Add the plug-in configuration section. See
 For example:
 ```erlang
 {rabbitmq_email, [
-    % email to amqp configuration
+    % gen_smtp server parameters
+    % see https://github.com/Vagabond/gen_smtp#server-example
     {server_config, [
         [{port, 2525}, {protocol, tcp}, {domain, "example.com"}, {address,{0,0,0,0}}]
     ]},
+    % inbound email exchanges: [{email-domain, {vhost, exchange}}, ...}
     {email_domains,
         [{<<"example.com">>, {<<"/">>, <<"email-in">>}}
     ]},
 
-    % amqp to email configuration
+    % outbound email queues: [{{vhost, queue}, email-domain}, ...]
     {email_queues,
         [{{<<"/">>, <<"email-out">>}, <<"example.com">>}
     ]},
+    % sender indicated in the From header
     {client_sender, "noreply@example.com"},
+    % gen_smtp client parameters
+    % see https://github.com/Vagabond/gen_smtp#client-example
     {client_config, [
         {relay, "smtp.example.com"}
     ]}
