@@ -7,6 +7,8 @@ rather than on [erlang-smtp] (https://github.com/tonyg/erlang-smtp).
 
 ## Mapping between SMTP and AMQP
 
+The mapping works in both directions.
+
 The adapter listens for incoming emails. When an email arrives at the adapter,
 its SMTP "To" address is examined to determine how it should be routed through
 the system. First, the address is split into a mailbox name and a domain part.
@@ -15,7 +17,11 @@ the system. First, the address is split into a mailbox name and a domain part.
    AMQP virtual-host and AMQP exchange name
  - the mailbox name is mapped to an AMQP routing key
 
-The adapter also binds to a set of AMQP queues. Each queue is linked with a
+To receive the incoming emails, simply bind your queue(s) to this exchange. To
+catch emails sent to unknown recipients you may use an
+[Alternate Exchange](http://www.rabbitmq.com/ae.html).
+
+The adapter also consumes a set of AMQP queues. Each queue is linked with a
 "default" domain name. When a message is consumed, its AMQP routing key is
 examined to determine the target SMTP address.
 
@@ -23,6 +29,10 @@ examined to determine the target SMTP address.
    directly to an SMTP address
  - routing key that includes the mailbox name only (i.e. without "@") is combined
    with the "default" domain name assigned to the queue
+
+To send emails, you should bind these queues to your exchange and then publish
+a message to this exchange.
+
 
 ## Installation
 
