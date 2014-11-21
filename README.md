@@ -1,6 +1,6 @@
 # SMTP Gateway Plugin for RabbitMQ
 
-This implementation aims to replace the https://github.com/rabbitmq/rabbitmq-smtp.
+This implementation aims to replace the [rabbitmq-smtp](https://github.com/rabbitmq/rabbitmq-smtp).
 It is based on a more advanced [gen_smtp] (https://github.com/Vagabond/gen_smtp)
 rather than on [erlang-smtp] (https://github.com/tonyg/erlang-smtp).
 
