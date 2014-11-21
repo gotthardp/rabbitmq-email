@@ -57,7 +57,7 @@ For example:
 You may want to run a standard [Postfix](http://www.postfix.org) SMTP server on
 the same machine and forward to the RabbitMQ plug-in only some e-mail domains.
 
-- Edit `main.cf`
+- Edit `/etc/postfix/main.cf`
   - Add the domains to be processed by RabbitMQ to the `relay_domains` list
 
     ```
@@ -70,7 +70,7 @@ the same machine and forward to the RabbitMQ plug-in only some e-mail domains.
     transport_maps = hash:/etc/postfix/transport
     ```
 
-- Add links to the plug-in to the `transport` file
+- Add links to the plug-in to the `/etc/postfix/transport` file
 
   ```
   example.com smtp:mail.example.com:2525
