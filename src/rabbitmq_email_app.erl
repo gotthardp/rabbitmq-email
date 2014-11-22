@@ -15,7 +15,7 @@
 -export([init/1]).
 
 start(normal, []) ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, _Arg = []).
+    supervisor:start_link(?MODULE, _Arg = []).
     
 stop(_State) ->
     ok.
@@ -23,12 +23,12 @@ stop(_State) ->
 init([]) ->
     {ok, ServerConfig} = application:get_env(rabbitmq_email, server_config),
     {ok, {{one_for_one, 3, 10},
-        [{rabbit_message_handler, {rabbit_message_handler, start_link, []},
-            permanent, 10000, worker, [mailer]},
-        {rabbit_email_handler, {gen_smtp_server, start_link, [rabbit_email_handler,
-            ServerConfig]},
-            permanent, 10000, worker, [mailer]}
-        ]}}.
+        % email to amqp
+        [{email_handler, {gen_smtp_server, start_link, [rabbit_email_handler, ServerConfig]},
+            permanent, 10000, worker, [rabbit_email_handler]},
+        % amqo to email
+        {message_handler_sup, {rabbit_message_handler_sup, start_link, []},
+            permanent, 10000, supervisor, [rabbit_message_handler_sup]}]}}.
 
 % end of file
 

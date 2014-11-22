@@ -11,46 +11,29 @@
 
 -include_lib("amqp_client/include/amqp_client.hrl").
 
--export([start_link/0]).
+-export([start_link/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
     terminate/2, code_change/3]).
 
--record(state, {channel}).
+-record(state, {connection, channel}).
 
-start_link() ->
-    gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
+start_link({VHost, Queue}, Domain) ->
+    gen_server:start_link(?MODULE, [{VHost, Queue}, Domain], []).
 
-init([]) ->
-    {ok, Connection} = amqp_connection:start(#amqp_params_direct{}),
+init([{VHost, Queue}, Domain]) ->
+    {ok, Connection} = amqp_connection:start(#amqp_params_direct{virtual_host=VHost}),
     {ok, Channel} = amqp_connection:open_channel(Connection),
 
-    {ok, Queues} = application:get_env(rabbitmq_email, email_queues),
-    lists:foreach(
-        fun({{VHost, Queue}, Domain}) ->
-            Subscribe = #'basic.consume'{queue=Queue, consumer_tag=Domain, no_ack=true},
-            #'basic.consume_ok'{} = amqp_channel:call(Channel, Subscribe)
-        end, Queues),
+    Subscribe = #'basic.consume'{queue=Queue, consumer_tag=Domain, no_ack=true},
+        #'basic.consume_ok'{} = amqp_channel:call(Channel, Subscribe),
 
-    State = #state{channel = Channel},
+    State = #state{connection=Connection, channel=Channel},
     {ok, State}.
 
 handle_call(_Msg, _From, State) ->
     {reply, unknown_command, State}.
 
-handle_cast({Reference, Domain, To, ContentType, Body}, #state{channel=Channel}=State) ->
-    {ok, Domains} = application:get_env(rabbitmq_email, email_domains),
-    {VHost, Exchange} = proplists:get_value(list_to_binary(Domain), Domains),
-
-    lists:foreach(
-        fun(Address) ->
-            Publish = #'basic.publish'{exchange=Exchange, routing_key=Address},
-            Properties = #'P_basic'{delivery_mode = 2, %% persistent message
-                content_type = ContentType,
-                message_id = list_to_binary(Reference),
-                timestamp = amqp_ts()},
-            Msg = #amqp_msg{props=Properties, payload=Body},
-            amqp_channel:cast(Channel, Publish, Msg)
-        end, To),
+handle_cast(_Msg, State) ->
     {noreply, State}.
 
 %% This is the first message received
@@ -73,8 +56,9 @@ handle_info(Msg, State) ->
     rabbit_log:info("~w", [Msg]),
     {noreply, State}.
 
-terminate(_Reason, #state{channel = Channel}) ->
-    amqp_channel:call(Channel, #'channel.close'{}),
+terminate(_Reason, #state{connection=Connection, channel=Channel}) ->
+    amqp_channel:close(Channel),
+    amqp_connection:close(Connection),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -85,10 +69,6 @@ construct_address(Key, Tag) ->
         nomatch -> <<Key/binary, $@, Tag/binary>>;
         _Else -> Key
     end.
-
-amqp_ts() ->
-    {MegaSecs, Secs, _MicroSecs} = now(),
-    MegaSecs * 1000 * 1000 + Secs.
 
 % end of file
 

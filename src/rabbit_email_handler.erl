@@ -14,23 +14,25 @@
 
 -export([init/4, handle_HELO/2, handle_EHLO/3, handle_MAIL/2, handle_MAIL_extension/2,
     handle_RCPT/2, handle_RCPT_extension/2, handle_DATA/4, handle_RSET/1, handle_VRFY/2,
-    handle_other/3, handle_AUTH/4, handle_STARTTLS/1, code_change/3, terminate/2]).
+    handle_other/3, handle_AUTH/4, handle_STARTTLS/1, handle_info/2,
+    code_change/3, terminate/2]).
 
 -record(state, {
-    domain,
+    sender_pid,
     options = [] :: list() }).
 
-init(Hostname, SessionCount, Address, Options) ->
+init(Hostname, SessionCount, Address, Options) when SessionCount < 20 ->
     rabbit_log:info("~s SMTP connection from ~p~n", [Hostname, Address]),
-    case SessionCount > 20 of
-        false ->
-            Banner = [Hostname, " ESMTP rabbit_email_handler"],
-            State = #state{domain = Hostname, options = Options},
-            {ok, Banner, State};
-        true ->
-            rabbit_log:warning("Connection limit exceeded~n"),
-            {stop, normal, ["421 ", Hostname, " is too busy to accept mail right now"]}
-    end.
+    process_flag(trap_exit, true),
+    {ok, SenderPid} = rabbit_message_sender:start_link(Hostname),
+
+    Banner = [Hostname, " ESMTP rabbit_email_handler"],
+    State = #state{sender_pid=SenderPid, options=Options},
+    {ok, Banner, State};
+
+init(Hostname, _SessionCount, _Address, _Options) ->
+    rabbit_log:warning("Connection limit exceeded~n"),
+    {stop, normal, ["421 ", Hostname, " is too busy to accept mail right now"]}.
 
 handle_HELO(<<"invalid">>, State) ->
     % contrived example
@@ -87,7 +89,7 @@ handle_RCPT_extension(Extension, _State) ->
 
 handle_DATA(_From, _To, <<>>, State) ->
     {error, "552 Message too small", State};
-handle_DATA(From, To, Data, #state{domain=Domain} = State) ->
+handle_DATA(From, To, Data, #state{sender_pid=SenderPid} = State) ->
     % some kind of unique id
     Reference = lists:flatten([io_lib:format("~2.16.0b", [X]) || <<X>> <= erlang:md5(term_to_binary(erlang:now()))]),
 
@@ -95,10 +97,11 @@ handle_DATA(From, To, Data, #state{domain=Domain} = State) ->
         {true, {T,S,H,A,Body}} ->
             rabbit_log:info("message from ~s to ~p queued as ~s~n", [From, To, Reference]),
             ContentType = <<T/binary, $/, S/binary>>,
-            gen_server:cast({global, rabbit_message_handler}, {Reference, Domain, To, ContentType, Body}),
+            gen_server:cast(SenderPid, {Reference, To, ContentType, Body}),
             % At this point, if we return ok, we've accepted responsibility for the email
             {ok, Reference, State};
         false ->
+            rabbit_log:error("message from ~s to ~p cannot be delivered~n", [From, To]),
             {error, "Message cannot be delivered", State}
     end.
 
@@ -129,10 +132,19 @@ handle_STARTTLS(State) ->
     rabbit_log:info("TLS Started~n"),
     State.
 
+handle_info({'EXIT', SenderPid, _Reason}, #state{sender_pid=SenderPid} = State) ->
+    % sender failed, we terminate as well
+    {stop, normal, State};
+
+handle_info(Info, State) ->
+    rabbit_log:info("~w~n", [Info]),
+    {noreply, State}.
+
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-terminate(Reason, State) ->
+terminate(Reason, #state{sender_pid=SenderPid} = State) ->
+    gen_server:cast(SenderPid, stop),
     {ok, Reason, State}.
 
 %% body decoding functions
