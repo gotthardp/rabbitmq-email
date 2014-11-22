@@ -35,14 +35,15 @@ init([Domain]) ->
 handle_call(_Msg, _From, State) ->
     {reply, unknown_command, State}.
 
-handle_cast({Reference, To, ContentType, Body}, #state{channel=Channel, exchange=Exchange}=State) ->
+handle_cast({Reference, To, ContentType, Headers, Body}, #state{channel=Channel, exchange=Exchange}=State) ->
     lists:foreach(
         fun(Address) ->
             Publish = #'basic.publish'{exchange=Exchange, routing_key=Address},
             Properties = #'P_basic'{delivery_mode = 2, %% persistent message
                 content_type = ContentType,
                 message_id = list_to_binary(Reference),
-                timestamp = amqp_ts()},
+                timestamp = amqp_ts(),
+                headers = lists:map(fun({Name, Value}) -> {Name, longstr, Value} end, Headers)},
             Msg = #amqp_msg{props=Properties, payload=Body},
             amqp_channel:cast(Channel, Publish, Msg)
         end, To),

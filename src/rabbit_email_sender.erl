@@ -8,21 +8,16 @@
 
 -module(rabbit_email_sender).
 
--include_lib("amqp_client/include/amqp_client.hrl").
--export([send_email/4]).
+-export([send_email/5]).
 
-send_email(Address, Domain, Properties, Payload) ->
-    {Type, Subtype} = get_content_type(Properties#'P_basic'.content_type),
+send_email(Address, Domain, {Type, Subtype}, Headers, Payload) ->
+    % add correct From and To headers
+    Headers2 = Headers
+        ++{<<"From">>, <<"noreply", $@, Domain/binary>>}
+        ++{<<"To">>, Address},
 
     Message = mimemail:encode({Type, Subtype,
-        % headers
-        set_plain_header(<<"From">>, <<"noreply", $@, Domain/binary>>)++
-        set_plain_header(<<"To">>, Address)++
-        set_plain_header(<<"Message-Id">>, Properties#'P_basic'.message_id),
-        % parameters
-        [],
-        % message body
-        Payload}),
+        lists:foldr(fun set_header/2, Headers2), [], Payload}),
 
     {ok, Sender} = application:get_env(rabbitmq_email, client_sender),
     {ok, ClientConfig} = application:get_env(rabbitmq_email, client_config),
@@ -31,14 +26,11 @@ send_email(Address, Domain, Properties, Payload) ->
 	{error, Res} -> rabbit_log:error("message cannot be sent: ~w~n", [Res])
     end.
 
-get_content_type(undefined) ->
-    {<<"text">>, <<"plain">>};
-get_content_type(Binary) ->
-    [Type, Subtype|_Others] = binary:split(Binary, [<<$/>>, <<$;>>], [global]),
-    {Type, Subtype}.
-
-set_plain_header(_Name, undefined) -> [];
-set_plain_header(Name, Binary) -> [{Name, Binary}].
+set_header({Name, Binary}, Acc) when is_binary(Binary) -> [{Name, Binary}|Acc];
+set_header({Name, List}, Acc) when is_list(List) -> [{Name, list_to_binary(List)}|Acc];
+set_header({_Name, undefined}, Acc) -> Acc;
+set_header({_Name, <<>>}, Acc) -> Acc;
+set_header({_Name, []}, Acc) -> Acc.
 
 % end of file
 

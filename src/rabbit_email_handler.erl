@@ -94,15 +94,16 @@ handle_DATA(From, To, Data, #state{sender_pid=SenderPid} = State) ->
     Reference = lists:flatten([io_lib:format("~2.16.0b", [X]) || <<X>> <= erlang:md5(term_to_binary(erlang:now()))]),
 
     case filter_body(Data) of
-        {true, {T,S,H,A,Body}} ->
+        {true, {Type,Subtype,Headers,_,Body}} ->
             rabbit_log:info("message from ~s to ~p queued as ~s~n", [From, To, Reference]),
-            ContentType = <<T/binary, $/, S/binary>>,
-            gen_server:cast(SenderPid, {Reference, To, ContentType, Body}),
+            ContentType = <<Type/binary, $/, Subtype/binary>>,
+            Headers2 = lists:filter(fun filter_header/1, Headers),
+            gen_server:cast(SenderPid, {Reference, To, ContentType, Headers2, Body}),
             % At this point, if we return ok, we've accepted responsibility for the email
             {ok, Reference, State};
         false ->
             rabbit_log:error("message from ~s to ~p cannot be delivered~n", [From, To]),
-            {error, "Message cannot be delivered", State}
+            {error, "554 Message cannot be delivered", State}
     end.
 
 handle_RSET(State) ->
@@ -164,10 +165,11 @@ filter_body({<<"multipart">>, Subtype, Header, Params, Parts}) ->
     case filter_body_parts(filter_multipart(Subtype, Parts)) of
         [] ->
             false;
-        [Part] ->
-            {true, Part};
-        Parts2 when is_list(Parts2) ->
-            {true, {<<"multipart">>, Subtype, Header, Params, Parts2}}
+        [{Type2, Subtype2, _Header2, Params2, Parts2}] ->
+            % keep the top-most headers
+            {true, {Type2, Subtype2, Header, Params2, Parts2}};
+        Parts3 when is_list(Parts3) ->
+            {true, {<<"multipart">>, Subtype, Header, Params, Parts3}}
     end;
 
 filter_body({<<"text">>, Subtype, Header, Params, Text}) ->
@@ -186,10 +188,8 @@ filter_body({<<"text">>, Subtype, Header, Params, Text}) ->
 
 % remove proprietary formats
 filter_body({<<"application">>, <<"ms-tnef">>, _H, _A, _P}) -> false;
-
-filter_body({T,S,_H,_A,_P} = Body) ->
-    % rabbit_log:info("Parsing ~p/~p~n", [T, S]),
-    {true, Body}.
+% and accept the rest
+filter_body(Body) -> {true, Body}.
 
 % lists:filtermap replacement for older Erlangs
 filter_body_parts(List1) ->
@@ -214,6 +214,10 @@ filter_multipart(<<"alternative">>, Parts) ->
 
 filter_multipart(<<"mixed">>, Parts) ->
     Parts.
+
+filter_header({Name, _Value}) ->
+    Name2 = string:to_lower(binary_to_list(Name)),
+    lists:member(Name2, ["subject"]).
 
 % end of file
 

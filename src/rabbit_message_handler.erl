@@ -47,9 +47,18 @@ handle_info(#'basic.cancel_ok'{}, State) ->
 %% A delivery
 handle_info({#'basic.deliver'{routing_key=Key, consumer_tag=Tag}, Content}, State) ->
     #amqp_msg{props = Properties, payload = Payload} = Content,
+    #'P_basic'{message_id = MessageId, headers = Headers} = Properties,
+    {Type, Subtype} = get_content_type(Properties#'P_basic'.content_type),
+
+    Headers2 = lists:map(fun
+            ({Name, longstr, Value}) -> {Name, Value}
+        end, Headers),
+
+    Headers3 = Headers2
+        ++{<<"Message-Id">>, MessageId},
 
     rabbit_email_sender:send_email(
-        construct_address(Key, Tag), Tag, Properties, Payload),
+        construct_address(Key, Tag), Tag, {Type, Subtype}, Headers3, Payload),
     {noreply, State};
 
 handle_info(Msg, State) ->
@@ -63,6 +72,12 @@ terminate(_Reason, #state{connection=Connection, channel=Channel}) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+get_content_type(undefined) ->
+    {<<"text">>, <<"plain">>};
+get_content_type(Binary) ->
+    [Type, Subtype|_Others] = binary:split(Binary, [<<$/>>, <<$;>>], [global]),
+    {Type, Subtype}.
 
 construct_address(Key, Tag) ->
     case binary:match(Key, <<"@">>) of
