@@ -4,6 +4,9 @@ This implementation aims to replace the [rabbitmq-smtp](https://github.com/rabbi
 It is based on a more advanced [gen_smtp] (https://github.com/Vagabond/gen_smtp)
 rather than on [erlang-smtp] (https://github.com/tonyg/erlang-smtp).
 
+Current status: Functionality described in this document is fully implemented and
+partially tested. I seek feature requests and early adopters.
+
 
 ## Mapping between SMTP and AMQP
 
