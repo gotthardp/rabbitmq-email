@@ -54,8 +54,8 @@ handle_info({#'basic.deliver'{routing_key=Key, consumer_tag=Tag}, Content}, Stat
             ({Name, longstr, Value}) -> {Name, Value}
         end, Headers),
 
-    Headers3 = Headers2
-        ++{<<"Message-Id">>, MessageId},
+    Headers3 = Headers2 ++
+        [{<<"Message-Id">>, MessageId}],
 
     rabbit_email_sender:send_email(
         construct_address(Key, Tag), Tag, {Type, Subtype}, Headers3, Payload),

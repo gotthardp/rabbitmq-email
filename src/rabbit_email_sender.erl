@@ -12,9 +12,9 @@
 
 send_email(Address, Domain, {Type, Subtype}, Headers, Payload) ->
     % add correct From and To headers
-    Headers2 = Headers
-        ++{<<"From">>, <<"noreply", $@, Domain/binary>>}
-        ++{<<"To">>, Address},
+    Headers2 = Headers ++
+        [{<<"From">>, <<"noreply", $@, Domain/binary>>},
+        {<<"To">>, Address}],
 
     Message = mimemail:encode({Type, Subtype,
         lists:foldr(fun set_header/2, Headers2), [], Payload}),
