@@ -17,7 +17,7 @@ send_email(Address, Domain, {Type, Subtype}, Headers, Payload) ->
         {<<"To">>, Address}],
 
     Message = mimemail:encode({Type, Subtype,
-        lists:foldr(fun set_header/2, Headers2), [], Payload}),
+        lists:foldr(fun set_header/2, [], Headers2), [], Payload}),
 
     {ok, Sender} = application:get_env(rabbitmq_email, client_sender),
     {ok, ClientConfig} = application:get_env(rabbitmq_email, client_config),
