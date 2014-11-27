@@ -51,7 +51,11 @@ handle_info({#'basic.deliver'{routing_key=Key, consumer_tag=Tag}, Content}, Stat
     {Type, Subtype} = get_content_type(Properties#'P_basic'.content_type),
 
     Headers2 = lists:map(fun
-            ({Name, longstr, Value}) -> {Name, Value}
+            ({Name, longstr, Value}) -> {Name, Value};
+            ({Name, array, List}) -> {Name, lists:foldr(fun
+                    ({longstr, Value}, undefined) -> Value;
+                    ({longstr, Value}, Acc) -> <<Value/binary, $;, Acc/binary>>
+                end, undefined, List)}
         end, Headers),
 
     Headers3 = Headers2 ++

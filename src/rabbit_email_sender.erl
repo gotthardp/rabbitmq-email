@@ -11,6 +11,7 @@
 -export([send_email/5]).
 
 send_email(Address, Domain, {Type, Subtype}, Headers, Payload) ->
+    rabbit_log:info("sending ~p/~p e-mail to ~p~n", [Type, Subtype, Address]),
     % add correct From and To headers
     Headers2 = Headers ++
         [{<<"From">>, <<"noreply", $@, Domain/binary>>},
