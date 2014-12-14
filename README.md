@@ -109,9 +109,12 @@ the same machine and forward to the RabbitMQ plug-in only some e-mail domains.
 
 ### Installation from source
 
-First, download and build the following pre-requisites:
- - [RabbitMQ gen_smtp Integration](https://github.com/gotthardp/rabbitmq-gen-smtp)
- - [RabbitMQ eiconv Integration](https://github.com/gotthardp/rabbitmq-eiconv)
+First, download and build
+[RabbitMQ gen_smtp Integration](https://github.com/gotthardp/rabbitmq-gen-smtp).
+
+To enable transcoding of incoming e-mails to a given character set build also
+[RabbitMQ eiconv Integration](https://github.com/gotthardp/rabbitmq-eiconv).
+This step is optional.
 
 Then, build the main RabbitMQ plug-in. See the
 [Plugin Development Guide](http://www.rabbitmq.com/plugin-development.html)
