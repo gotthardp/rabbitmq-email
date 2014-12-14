@@ -29,7 +29,7 @@
             {relay, "smtp.example.com"}
         ]}
     ]},
-    {applications, [kernel, stdlib, rabbit, amqp_client, gen_smtp, eiconv]}]}.
+    {applications, [kernel, stdlib, rabbit, amqp_client, gen_smtp]}]}.
 
 % end of file
 

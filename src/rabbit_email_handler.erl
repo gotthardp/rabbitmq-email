@@ -151,7 +151,6 @@ terminate(Reason, #state{sender_pid=SenderPid} = State) ->
 %% body decoding functions
 
 filter_body(Data) when is_binary(Data) ->
-    % note: decoding requires eiconv
     try mimemail:decode(Data) of
         {T,S,H,A,P} -> filter_body({T,S,H,A,P})
     catch
