@@ -120,7 +120,7 @@ Then, build the main RabbitMQ plug-in. See the
 [Plugin Development Guide](http://www.rabbitmq.com/plugin-development.html)
 for more details.
 
-    $ hg clone http://hg.rabbitmq.com/rabbitmq-public-umbrella
+    $ git clone https://github.com/rabbitmq/rabbitmq-public-umbrella.git
     $ cd rabbitmq-public-umbrella
     $ make co
     $ make BRANCH=<tag> up_c
