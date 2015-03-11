@@ -1,4 +1,6 @@
 # SMTP Gateway Plugin for RabbitMQ
+Maps SMTP to AMQP (to convert an incoming email to an AMQP message) and AMQP
+to SMTP (to send an email from an AMQP message).
 
 This implementation aims to replace the [rabbitmq-smtp](https://github.com/rabbitmq/rabbitmq-smtp).
 It is based on a more advanced [gen_smtp] (https://github.com/Vagabond/gen_smtp)

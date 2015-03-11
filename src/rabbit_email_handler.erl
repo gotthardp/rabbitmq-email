@@ -94,12 +94,17 @@ handle_DATA(From, To, Data, #state{sender_pid=SenderPid} = State) ->
     Reference = lists:flatten([io_lib:format("~2.16.0b", [X]) || <<X>> <= erlang:md5(term_to_binary(erlang:now()))]),
 
     case filter_body(Data) of
-        {true, {Type,Subtype,Headers,_,Body}} ->
-            rabbit_log:info("message from ~s to ~p queued as ~s~n", [From, To, Reference]),
+        {true, {Type,Subtype,Headers,_,Body}} when is_binary(Body) ->
+            rabbit_log:info("~s/~s message from ~s to ~p queued as ~s~n", [Type, Subtype, From, To, Reference]),
             ContentType = <<Type/binary, $/, Subtype/binary>>,
             Headers2 = lists:filter(fun filter_header/1, Headers),
             gen_server:cast(SenderPid, {Reference, To, ContentType, Headers2, Body}),
             % At this point, if we return ok, we've accepted responsibility for the email
+            {ok, Reference, State};
+        {true, Multipart} ->
+            rabbit_log:info("application/mime message from ~s to ~p queued as ~s~n", [From, To, Reference]),
+            Body2 = mimemail:encode(Multipart),
+            gen_server:cast(SenderPid, {Reference, To, <<"application/mime">>, [], Body2}),
             {ok, Reference, State};
         false ->
             rabbit_log:error("message from ~s to ~p cannot be delivered~n", [From, To]),
@@ -166,6 +171,7 @@ filter_body({<<"multipart">>, Subtype, Header, Params, Parts}) ->
             false;
         [{Type2, Subtype2, _Header2, Params2, Parts2}] ->
             % keep the top-most headers
+            % FIXME: some top-most should be preserved, but not Content-Type
             {true, {Type2, Subtype2, Header, Params2, Parts2}};
         Parts3 when is_list(Parts3) ->
             {true, {<<"multipart">>, Subtype, Header, Params, Parts3}}
