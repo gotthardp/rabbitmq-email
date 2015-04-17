@@ -24,6 +24,7 @@
         {email_filter, [
             {<<"text">>, <<"plain">>},
             {<<"text">>, undefined},
+            {<<"image">>, undefined},
             {undefined, undefined}
         ]},
         % amqp to email configuration

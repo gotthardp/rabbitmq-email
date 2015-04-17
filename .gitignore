@@ -9,6 +9,8 @@ cover
 dist
 ebin
 rel/example_project
+test/data/samples.zip
+test/data/samples
 test/ebin
 .concrete/DEV_MODE
 .rebar

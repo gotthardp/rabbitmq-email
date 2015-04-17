@@ -179,7 +179,7 @@ filter_body({<<"multipart">>, Subtype, Header, _Params, Parts}=Parent) ->
         Parts3 when is_list(Parts3) ->
             % pass 2: select the best part
             {ok, Filter} = application:get_env(rabbitmq_email, email_filter),
-            {true, best_multipart(Parts3, Filter, Parent)}
+            {true, best_multipart(Parts3, lists:reverse(Filter), Parent)}
     end;
 
 filter_body({<<"text">>, Subtype, Header, Params, Text}) ->
