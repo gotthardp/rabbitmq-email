@@ -164,9 +164,10 @@ filter_body(Data) when is_binary(Data) ->
         false
     end;
 
-filter_body({<<"multipart">>, Subtype, Header, Params, Parts}) ->
+filter_body({<<"multipart">>, Subtype, Header, _Params, Parts}=Parent) ->
     % rabbit_log:info("Parsing multipart/~p~n", [Subtype]),
-    case filter_body_parts(filter_multipart(Subtype, Parts)) of
+    % pass 1: filter undersirable content
+    case filter_multipart(Subtype, Parts) of
         [] ->
             false;
         [{Type2, Subtype2, _Header2, Params2, Parts2}] ->
@@ -174,7 +175,9 @@ filter_body({<<"multipart">>, Subtype, Header, Params, Parts}) ->
             % FIXME: some top-most should be preserved, but not Content-Type
             {true, {Type2, Subtype2, Header, Params2, Parts2}};
         Parts3 when is_list(Parts3) ->
-            {true, {<<"multipart">>, Subtype, Header, Params, Parts3}}
+            % pass 2: select the best part
+            {ok, Filter} = application:get_env(rabbitmq_email, email_filter),
+            {true, best_multipart(Parts3, Filter, Parent)}
     end;
 
 filter_body({<<"text">>, Subtype, Header, Params, Text}) ->
@@ -187,6 +190,8 @@ filter_body({<<"text">>, Subtype, Header, Params, Text}) ->
         byte_size(Text3) > 0 ->
             % rabbit_log:info("Parsing text/~p~n", [Subtype]),
             {true, {<<"text">>, Subtype, Header, Params, Text3}};
+        Subtype == <<"plain">> ->
+            empty;
         true ->
             false
     end;
@@ -196,29 +201,58 @@ filter_body({<<"application">>, <<"ms-tnef">>, _H, _A, _P}) -> false;
 % and accept the rest
 filter_body(Body) -> {true, Body}.
 
-% lists:filtermap replacement for older Erlangs
-filter_body_parts(List1) ->
-    lists:foldr(fun(Elem, Acc) ->
+% when text/plain in multipart/alternative is empty, the entire body is empty
+filter_multipart(<<"alternative">>, List) ->
+    case filter_bodies(List) of
+        {true, _} -> [];
+        {false, Acc} -> Acc
+    end;
+
+filter_multipart(_, List) ->
+    {_, Acc} = filter_bodies(List),
+    Acc.
+
+filter_bodies(List1) ->
+    lists:foldr(fun(Elem, {false, Acc}) ->
         case filter_body(Elem) of
-            false -> Acc;
-            true -> [Elem|Acc];
-            {true,Value} -> [Value|Acc]
+            empty -> {true, Acc};
+            false -> {false, Acc};
+            {true,Value} -> {false, [Value|Acc]}
         end
-    end, [], List1).
+    end, {false, []}, List1).
 
-filter_multipart(<<"alternative">>, Parts) ->
-    Best = lists:foldl(
+best_multipart(Parts, [{Type, SubType} | OtherPrios], BestSoFar) when is_binary(Type), is_binary(SubType) ->
+    Better = lists:foldl(
         fun (Body1, undefined) -> Body1;
-            (_, {<<"text">>, <<"plain">>, _, _, _}=Body2) -> Body2;
-            ({<<"text">>, <<"plain">>, _, _, _}=Body3, _) -> Body3;
-            (_, {<<"text">>, _, _, _, _}=Body4) -> Body4;
-            ({<<"text">>, _, _, _, _}=Body5, _) -> Body5;
+            (_, {T2, S2, _, _, _}=Body2) when T2==Type, S2==SubType -> Body2;
+            ({T3, S3, _, _, _}=Body3, _) when T3==Type, S3==SubType -> Body3;
+            (_, {T4, _, _, _, _}=Body4) when T4==Type -> Body4;
+            ({T5, _, _, _, _}=Body5, _) when T5==Type -> Body5;
             (_, Else) -> Else
-        end, undefined, Parts),
-    [Best];
+        end, BestSoFar, Parts),
+    best_multipart(Parts, OtherPrios, Better);
 
-filter_multipart(<<"mixed">>, Parts) ->
-    Parts.
+best_multipart(Parts, [{Type, undefined} | OtherPrios], BestSoFar) when is_binary(Type) ->
+    Better = lists:foldl(
+        fun (Body1, undefined) -> Body1;
+            (_, {T2, _, _, _, _}=Body2) when T2==Type -> Body2;
+            ({T3, _, _, _, _}=Body3, _) when T3==Type -> Body3;
+            (_, Else) -> Else
+        end, BestSoFar, Parts),
+    best_multipart(Parts, OtherPrios, Better);
+
+best_multipart(Parts, [{undefined, undefined} | OtherPrios], BestSoFar) ->
+    Better = lists:foldl(
+        fun (Body1, undefined) -> Body1;
+            (_, Else) -> Else
+        end, BestSoFar, Parts),
+    best_multipart(Parts, OtherPrios, Better);
+
+best_multipart(Parts, [], BestSoFar) ->
+    lists:foldl(
+        fun (Body1, undefined) -> Body1;
+            (_, Else) -> Else
+        end, BestSoFar, Parts).
 
 filter_header({Name, _Value}) ->
     Name2 = string:to_lower(binary_to_list(Name)),

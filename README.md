@@ -28,11 +28,57 @@ To receive the incoming emails, simply bind your queue(s) to this exchange. To
 catch emails sent to unknown recipients you may use an
 [Alternate Exchange](http://www.rabbitmq.com/ae.html).
 
-To decrease message size and for security reasons the adapter may filter content
-of each email published to the AMQP exchange. The adapter will:
- - pass to AMQP only selected MIME headers (Subject, Message-Id)
- - select only one part of `multipart/alternative` content
- - remove unknown, or vulnerable `multipart/mixed` body parts
+The message gets converted as shown in the table below. For each email published
+to the AMQP exchange the adapter will:
+ - pass to AMQP only selected MIME headers (see `email_headers`)
+ - select only one part of `multipart` content (see `email_filter`)
+
+  SMTP                   | AMQP
+ ------------------------|------------------------
+  From                   |
+  To                     | exchange, routing_key
+                         | message_id
+                         | timestamp
+  Subject                | Subject
+  Content-Type           | content_type (filtered)
+  Body                   | payload (filtered)
+
+The `email_filter` configuration option can be used to filter the SMTP body.
+
+ - Extract the text body or (when no text) the first binary attachement.
+   This is the default behaviour.
+
+   ```erlang
+   {email_filter, [
+     {<<"text">>,<<"plain">>},
+     {<<"text">>, undefined},
+     {undefined, undefined}
+   ]}
+   ```
+
+   Each 2-tuple represents content type/subtype.
+   The atom `undefined` represents any content other than <<"multipart">>.
+
+ - Extract the first binary attachement or (when no attachement) the text body.
+
+   ```erlang
+   {email_filter, [
+     {binary, undefined},
+     {<<"text">>,<<"plain">>},
+     {<<"text">>, undefined}
+   ]}
+   ```
+
+   The atom `binary` represents any content other than <<"text">> and <<"multipart">>.
+
+ - Send multipart content as is, without extracting anything.
+
+   ```erlang
+   {email_filter, [
+     {<<"multipart">>, undefined},
+     {undefined, undefined}
+   ]}
+   ```
 
 ### AMQP to SMTP
 
@@ -46,9 +92,17 @@ examined to determine the target SMTP address.
    with the "default" domain name assigned to the queue
 
 To send emails, you should bind these queues to your exchange and then publish
-a message to this exchange.
+a message to this exchange. The message gets converted as shown in the table
+below. No content filtering is performed in this direction.
 
-No content filtering is performed in this direction.
+  AMQP                   | SMTP
+ ------------------------|------------------------
+                         | From: noreply@<domain>
+  routing_key            | To
+  message_id             | Message-Id
+  content_type           | Content-Type
+  headers                | additional headers
+  payload                | Body
 
 
 ## Installation
@@ -113,12 +167,14 @@ the same machine and forward to the RabbitMQ plug-in only some e-mail domains.
 
 First, download and build
 [RabbitMQ gen_smtp Integration](https://github.com/gotthardp/rabbitmq-gen-smtp).
+The `gen_smtp` provides a generic Erlang SMTP server and client only. The
+gateway functions are provided by the `rabbitmq-email` plugin.
 
 To enable transcoding of incoming e-mails to a given character set build also
 [RabbitMQ eiconv Integration](https://github.com/gotthardp/rabbitmq-eiconv).
 This step is optional.
 
-Then, build the main RabbitMQ plug-in. See the
+Then, build and activate the RabbitMQ plug-in `rabbitmq-email`. See the
 [Plugin Development Guide](http://www.rabbitmq.com/plugin-development.html)
 for more details.
 

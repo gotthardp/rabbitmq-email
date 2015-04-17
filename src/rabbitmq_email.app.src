@@ -3,7 +3,7 @@
 % License, v. 2.0. If a copy of the MPL was not distributed with this
 % file, You can obtain one at http://mozilla.org/MPL/2.0/.
 %
-% Copyright (C) 2014 Petr Gotthard <petr.gotthard@centrum.cz>
+% Copyright (C) 2014-2015 Petr Gotthard <petr.gotthard@centrum.cz>
 %
 
 {application, rabbitmq_email,
@@ -19,6 +19,12 @@
         ]},
         {email_domains,
             [{<<"example.com">>, {<<"/">>, <<"email-in">>}}
+        ]},
+        {email_headers, [<<"subject">>]},
+        {email_filter, [
+            {<<"text">>, <<"plain">>},
+            {<<"text">>, undefined},
+            {undefined, undefined}
         ]},
         % amqp to email configuration
         {email_queues,
