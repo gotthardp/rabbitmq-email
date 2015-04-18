@@ -97,7 +97,7 @@ handle_DATA(From, To, Data, #state{sender_pid=SenderPid} = State) ->
         {true, {Type,Subtype,Headers,Params,Body}} when is_binary(Body) ->
             rabbit_log:info("~s/~s message from ~s to ~p queued as ~s~n", [Type, Subtype, From, To, Reference]),
             ContentType = <<Type/binary, $/, Subtype/binary>>,
-            ContentTypeParams = proplists:get_value(<<"content-type-params">>, Params),
+            ContentTypeParams = proplists:get_value(<<"content-type-params">>, Params, []),
             Headers1 = lists:merge(Headers, ContentTypeParams),
             Headers2 = lists:filter(fun filter_header/1, Headers1),
             gen_server:cast(SenderPid, {Reference, To, ContentType, Headers2, Body}),

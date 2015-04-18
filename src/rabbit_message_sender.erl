@@ -27,10 +27,20 @@ init([Domain]) ->
     process_flag(trap_exit, true),
     {ok, Connection} = amqp_connection:start(
         #amqp_params_direct{virtual_host=VHost}),
-    {ok, Channel} = amqp_connection:open_channel(Connection),
+    try_declaring_exchange(Connection, Exchange),
 
+    {ok, Channel} = amqp_connection:open_channel(Connection),
     State = #state{connection=Connection, channel=Channel, exchange=Exchange},
     {ok, State}.
+
+try_declaring_exchange(Connection, Exchange) ->
+    {ok, Channel} = amqp_connection:open_channel(Connection),
+    try
+        catch amqp_channel:call(Channel, #'exchange.declare'{exchange=Exchange,
+                                                             type = <<"topic">>})
+    after
+        catch amqp_channel:close(Channel)
+    end.
 
 handle_call(_Msg, _From, State) ->
     {reply, unknown_command, State}.

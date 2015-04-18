@@ -22,13 +22,23 @@ start_link({VHost, Queue}, Domain) ->
 
 init([{VHost, Queue}, Domain]) ->
     {ok, Connection} = amqp_connection:start(#amqp_params_direct{virtual_host=VHost}),
-    {ok, Channel} = amqp_connection:open_channel(Connection),
+    try_declaring_queue(Connection, Queue),
 
+    {ok, Channel} = amqp_connection:open_channel(Connection),
     Subscribe = #'basic.consume'{queue=Queue, consumer_tag=Domain, no_ack=true},
-        #'basic.consume_ok'{} = amqp_channel:call(Channel, Subscribe),
+    #'basic.consume_ok'{} = amqp_channel:call(Channel, Subscribe),
 
     State = #state{connection=Connection, channel=Channel},
     {ok, State}.
+
+try_declaring_queue(Connection, Queue) ->
+    {ok, Channel} = amqp_connection:open_channel(Connection),
+    try
+        catch amqp_channel:call(Channel, #'queue.declare'{queue=Queue})
+    after
+        catch amqp_channel:close(Channel)
+    end.
+
 
 handle_call(_Msg, _From, State) ->
     {reply, unknown_command, State}.
