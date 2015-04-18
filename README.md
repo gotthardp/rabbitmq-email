@@ -50,7 +50,7 @@ The `email_filter` configuration option can be used to filter the SMTP body.
 
    ```erlang
    {email_filter, [
-     {<<"text">>,<<"plain">>},
+     {<<"text">>, <<"plain">>},
      {<<"text">>, undefined},
      {undefined, undefined}
    ]}
@@ -64,7 +64,7 @@ The `email_filter` configuration option can be used to filter the SMTP body.
    ```erlang
    {email_filter, [
      {binary, undefined},
-     {<<"text">>,<<"plain">>},
+     {<<"text">>, <<"plain">>},
      {<<"text">>, undefined}
    ]}
    ```
@@ -189,7 +189,7 @@ for more details.
 
 ## Copyright and Licensing
 
-Copyright (c) 2014 Petr Gotthard <petr.gotthard@centrum.cz>
+Copyright (c) 2014-2015 Petr Gotthard <petr.gotthard@centrum.cz>
 
 This package is subject to the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License. You may obtain a

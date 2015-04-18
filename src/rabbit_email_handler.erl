@@ -94,10 +94,12 @@ handle_DATA(From, To, Data, #state{sender_pid=SenderPid} = State) ->
     Reference = lists:flatten([io_lib:format("~2.16.0b", [X]) || <<X>> <= erlang:md5(term_to_binary(erlang:now()))]),
 
     case filter_body(Data) of
-        {true, {Type,Subtype,Headers,_,Body}} when is_binary(Body) ->
+        {true, {Type,Subtype,Headers,Params,Body}} when is_binary(Body) ->
             rabbit_log:info("~s/~s message from ~s to ~p queued as ~s~n", [Type, Subtype, From, To, Reference]),
             ContentType = <<Type/binary, $/, Subtype/binary>>,
-            Headers2 = lists:filter(fun filter_header/1, Headers),
+            ContentTypeParams = proplists:get_value(<<"content-type-params">>, Params),
+            Headers1 = lists:merge(Headers, ContentTypeParams),
+            Headers2 = lists:filter(fun filter_header/1, Headers1),
             gen_server:cast(SenderPid, {Reference, To, ContentType, Headers2, Body}),
             % At this point, if we return ok, we've accepted responsibility for the email
             {ok, Reference, State};
@@ -256,7 +258,8 @@ best_multipart(Parts, [], BestSoFar) ->
 
 filter_header({Name, _Value}) ->
     Name2 = string:to_lower(binary_to_list(Name)),
-    lists:member(Name2, ["subject"]).
+    {ok, Filter} = application:get_env(rabbitmq_email, email_headers),
+    lists:member(Name2, Filter).
 
 % end of file
 

@@ -20,7 +20,7 @@
         {email_domains,
             [{<<"example.com">>, {<<"/">>, <<"email-in">>}}
         ]},
-        {email_headers, [<<"subject">>]},
+        {email_headers, ["subject", "from", "charset"]},
         {email_filter, [
             {<<"text">>, <<"plain">>},
             {<<"text">>, undefined},
