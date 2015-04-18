@@ -37,6 +37,7 @@ try_declaring_exchange(Connection, Exchange) ->
     {ok, Channel} = amqp_connection:open_channel(Connection),
     try
         catch amqp_channel:call(Channel, #'exchange.declare'{exchange=Exchange,
+                                                             durable=true,
                                                              type = <<"topic">>})
     after
         catch amqp_channel:close(Channel)
