@@ -12,7 +12,8 @@
 -include_lib("amqp_client/include/amqp_client.hrl").
 
 email_filtering_test_() ->
-    [?_assert(filter_email("samples/messages/m0001.txt") == <<"text/plain">>),
+    [?_assert(filter_email("t0001.txt") == undefined),
+    ?_assert(filter_email("samples/messages/m0001.txt") == <<"text/plain">>),
     ?_assert(filter_email("samples/messages/m0002.txt") == <<"text/plain">>),
     ?_assert(filter_email("samples/messages/m0003.txt") == <<"text/plain">>),
     ?_assert(filter_email("samples/messages/m0004.txt") == <<"text/plain">>),

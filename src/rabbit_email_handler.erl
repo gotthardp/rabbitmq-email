@@ -97,9 +97,7 @@ handle_DATA(From, To, Data, #state{sender_pid=SenderPid} = State) ->
         {true, {Type,Subtype,Headers,Params,Body}} when is_binary(Body) ->
             rabbit_log:info("~s/~s message from ~s to ~p queued as ~s~n", [Type, Subtype, From, To, Reference]),
             ContentType = <<Type/binary, $/, Subtype/binary>>,
-            ContentTypeParams = proplists:get_value(<<"content-type-params">>, Params, []),
-            Headers1 = lists:merge(Headers, ContentTypeParams),
-            Headers2 = lists:filter(fun filter_header/1, Headers1),
+            Headers2 = extract_headers(Headers, Params),
             gen_server:cast(SenderPid, {Reference, To, ContentType, Headers2, Body}),
             % At this point, if we return ok, we've accepted responsibility for the email
             {ok, Reference, State};
@@ -108,10 +106,20 @@ handle_DATA(From, To, Data, #state{sender_pid=SenderPid} = State) ->
             Body2 = mimemail:encode(Multipart),
             gen_server:cast(SenderPid, {Reference, To, <<"application/mime">>, [], Body2}),
             {ok, Reference, State};
+        {empty, {_,_,Headers,Params,_}} ->
+            rabbit_log:info("empty message from ~s to ~p queued as ~s~n", [From, To, Reference]),
+            Headers2 = extract_headers(Headers, Params),
+            gen_server:cast(SenderPid, {Reference, To, <<>>, Headers2, <<>>}),
+            {ok, Reference, State};
         false ->
             rabbit_log:error("message from ~s to ~p cannot be delivered~n", [From, To]),
             {error, "554 Message cannot be delivered", State}
     end.
+
+extract_headers(Headers, Params) ->
+        ContentTypeParams = proplists:get_value(<<"content-type-params">>, Params, []),
+        AllHeaders = lists:merge(Headers, ContentTypeParams),
+        lists:filter(fun filter_header/1, AllHeaders).
 
 handle_RSET(State) ->
     % reset any relevant internal state
@@ -193,7 +201,7 @@ filter_body({<<"text">>, Subtype, Header, Params, Text}) ->
             % rabbit_log:info("Parsing text/~p~n", [Subtype]),
             {true, {<<"text">>, Subtype, Header, Params, Text3}};
         Subtype == <<"plain">> ->
-            empty;
+            {empty, {<<"text">>, Subtype, Header, Params, <<>>}};
         true ->
             false
     end;
@@ -217,8 +225,8 @@ filter_multipart(_, List) ->
 filter_bodies(List1) ->
     lists:foldr(fun(Elem, {false, Acc}) ->
         case filter_body(Elem) of
-            empty -> {true, Acc};
             false -> {false, Acc};
+            {empty,_} -> {true, Acc};
             {true,Value} -> {false, [Value|Acc]}
         end
     end, {false, []}, List1).

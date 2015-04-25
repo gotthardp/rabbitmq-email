@@ -50,7 +50,7 @@ handle_cast({Reference, To, ContentType, Headers, Body}, #state{channel=Channel,
         fun(Address) ->
             Publish = #'basic.publish'{exchange=Exchange, routing_key=Address},
             Properties = #'P_basic'{delivery_mode = 2, %% persistent message
-                content_type = ContentType,
+                content_type = set_content_type(ContentType),
                 message_id = list_to_binary(Reference),
                 timestamp = amqp_ts(),
                 headers = lists:map(fun({Name, Value}) -> {Name, longstr, Value} end, Headers)},
@@ -73,6 +73,9 @@ terminate(_Reason, #state{connection=Connection, channel=Channel}) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+set_content_type(<<>>) -> undefined;
+set_content_type(ContentType) -> ContentType.
 
 amqp_ts() ->
     {MegaSecs, Secs, _MicroSecs} = now(),
