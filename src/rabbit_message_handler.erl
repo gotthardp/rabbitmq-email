@@ -34,7 +34,7 @@ init([{VHost, Queue}, Domain]) ->
 try_declaring_queue(Connection, Queue) ->
     {ok, Channel} = amqp_connection:open_channel(Connection),
     try
-        catch amqp_channel:call(Channel, #'queue.declare'{queue=Queue})
+        catch amqp_channel:call(Channel, #'queue.declare'{queue=Queue, durable=true})
     after
         catch amqp_channel:close(Channel)
     end.
