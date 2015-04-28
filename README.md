@@ -170,9 +170,10 @@ First, download and build
 The `gen_smtp` provides a generic Erlang SMTP server and client only. The
 gateway functions are provided by the `rabbitmq-email` plugin.
 
-To enable transcoding of incoming e-mails to a given character set build also
+To enable non-ASCII characters in e-mails build also
 [RabbitMQ eiconv Integration](https://github.com/gotthardp/rabbitmq-eiconv).
-This step is optional.
+This step is optional; when eiconv is disabled the `gen_smtp` will ignore
+both header and content encoding schemes.
 
 Then, build and activate the RabbitMQ plug-in `rabbitmq-email`. See the
 [Plugin Development Guide](http://www.rabbitmq.com/plugin-development.html)

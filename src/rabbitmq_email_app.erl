@@ -21,6 +21,11 @@ stop(_State) ->
     ok.
 
 init([]) ->
+    % check for optional dependencies
+    case erlang:function_exported(iconv, conv, 2) of
+        true -> rabbit_log:info("iconv detected: content trancoding is enabled");
+        false -> rabbit_log:warning("iconv not detected: content transcoding is DISABLED")
+    end,
     {ok, ServerConfig} = application:get_env(rabbitmq_email, server_config),
     {ok, {{one_for_one, 3, 10},
         % email to amqp
