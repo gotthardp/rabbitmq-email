@@ -6,8 +6,16 @@ This implementation aims to replace the [rabbitmq-smtp](https://github.com/rabbi
 It is based on a more advanced [gen_smtp] (https://github.com/Vagabond/gen_smtp)
 rather than on [erlang-smtp] (https://github.com/tonyg/erlang-smtp).
 
-Current status: Functionality described in this document is fully implemented and
-partially tested. I seek feature requests and early adopters.
+This plugin is experimental. The described functionality is fully implemented
+and partially tested. I seek feature requests and early adopters.
+
+If your installation of the plugin fails to process an e-mail, please:
+ * re-send this e-mail to rabbitmq[at]swimgate.eu
+ * create an [issue](https://github.com/gotthardp/rabbitmq-email/issues) and
+   describe what you expected and what did happen
+
+Please re-send the e-mail exactly the same way it failed for you. Do not use the
+forward button, do not add any explanation. I need the original MIME headers and body.
 
 
 ## Mapping between SMTP and AMQP
