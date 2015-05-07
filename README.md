@@ -10,7 +10,7 @@ This plugin is experimental. The described functionality is fully implemented
 and partially tested. I seek feature requests and early adopters.
 
 If your installation of the plugin fails to process an e-mail, please:
- * re-send this e-mail to rabbitmq[at]swimgate.eu
+ * re-send this e-mail to my instance of the plugin at 'rabbitmq[at]swimgate.eu'
  * create an [issue](https://github.com/gotthardp/rabbitmq-email/issues) and
    describe what you expected and what did happen
 
