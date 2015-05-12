@@ -190,7 +190,7 @@ for more details.
     $ git clone https://github.com/rabbitmq/rabbitmq-public-umbrella.git
     $ cd rabbitmq-public-umbrella
     $ make co
-    $ make BRANCH=<tag> up_c
+    $ ./foreachrepo git checkout <tag>
     $ git clone https://github.com/gotthardp/rabbitmq-email.git
     $ cd rabbitmq-email
     $ make
