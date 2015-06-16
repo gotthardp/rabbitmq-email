@@ -91,7 +91,7 @@ handle_DATA(_From, _To, <<>>, State) ->
     {error, "552 Message too small", State};
 handle_DATA(From, To, Data, #state{sender_pid=SenderPid} = State) ->
     % some kind of unique id
-    Reference = lists:flatten([io_lib:format("~2.16.0b", [X]) || <<X>> <= erlang:md5(term_to_binary(erlang:now()))]),
+    Reference = lists:flatten([io_lib:format("~2.16.0b", [X]) || <<X>> <= erlang:md5(term_to_binary(os:timestamp()))]),
     % log for debugging purposes
     case application:get_env(rabbitmq_email, email_store) of
 	undefined -> ok;
