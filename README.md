@@ -127,6 +127,10 @@ For example:
     {server_config, [
         [{port, 2525}, {protocol, tcp}, {domain, "example.com"}, {address,{0,0,0,0}}]
     ]},
+    % how clients are authenticated; either 'false' or 'rabbitmq' (default)
+    {server_auth, rabbitmq},
+    % whether STARTTLS shall be offered; either 'true' (default) or 'false'
+    {server_starttls, true},
     % inbound email exchanges: [{email-domain, {vhost, exchange}}, ...}
     {email_domains,
         [{<<"example.com">>, {<<"/">>, <<"email-in">>}}
