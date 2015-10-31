@@ -89,7 +89,7 @@ filter_email(Filename, Expect) ->
     {ok, File} = file:read_file("test/data/"++Filename),
     ?debugFmt("~s", [Filename]),
     Res = case gen_smtp_client:send_blocking({"whatever@example.com", ["test@example.com"], File},
-                              [{relay, "127.0.0.1"}, {port, 2525}]) of
+                [{relay, "127.0.0.1"}, {port, 2525}, {username, "guest"}, {password, "guest"}]) of
         Answer when is_binary(Answer) ->
             % expect AMQP message
             wait_for_message(Channel, Queue, 10, Expect);
@@ -136,7 +136,11 @@ expect(#'P_basic'{headers = Headers}, {Header, Expected}) ->
         false ->
             ?debugFmt("~s missing, expected ~s", [Header, Expected]),
             false
-    end.
+    end;
+
+expect(Props, {error}) ->
+    ?debugFmt("unexpected success, expected error, received ~w", [Props]),
+    false.
 
 expect_error(_Reason, {error}) ->
     true;

@@ -18,7 +18,7 @@
             [{port, 2525}, {protocol, tcp}, {domain, "example.com"}, {address,{0,0,0,0}}]
         ]},
         {server_auth, rabbitmq},
-        {server_starttls, true},
+        {server_starttls, false},
         {email_domains,
             [{<<"example.com">>, {<<"/">>, <<"email-in">>}}
         ]},

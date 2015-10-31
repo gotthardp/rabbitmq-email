@@ -12,5 +12,6 @@ rel/example_project
 test/data/samples.zip
 test/data/samples
 test/ebin
+test/*.xml
 .concrete/DEV_MODE
 .rebar

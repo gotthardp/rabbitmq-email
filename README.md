@@ -79,13 +79,10 @@ The `email_filter` configuration option can be used to filter the SMTP body.
 
    The atom `binary` represents any content other than <<"text">> and <<"multipart">>.
 
- - Send multipart content as is, without extracting anything.
+ - Do not extract anything and send the entire e-mail as <<"application/mime">>.
 
    ```erlang
-   {email_filter, [
-     {<<"multipart">>, undefined},
-     {undefined, undefined}
-   ]}
+   {email_filter, false}
    ```
 
 ### AMQP to SMTP
@@ -129,7 +126,7 @@ For example:
     ]},
     % how clients are authenticated; either 'false' or 'rabbitmq' (default)
     {server_auth, rabbitmq},
-    % whether STARTTLS shall be offered; either 'true' (default) or 'false'
+    % whether STARTTLS shall be offered; either 'true' or 'false' (default)
     {server_starttls, true},
     % inbound email exchanges: [{email-domain, {vhost, exchange}}, ...}
     {email_domains,
