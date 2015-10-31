@@ -22,7 +22,31 @@ forward button, do not add any explanation. I need the original MIME headers and
 
 The mapping works in both directions.
 
-### SMTP to AMQP
+### AMQP to SMTP Conversion
+
+The adapter consumes a set of AMQP queues. Each queue is linked with a
+"default" domain name. When a message is consumed, its AMQP routing key is
+examined to determine the target SMTP address.
+
+ - routing key that includes a domain part (i.e. the "@" character") is mapped
+   directly to an SMTP address
+ - routing key that includes the mailbox name only (i.e. without "@") is combined
+   with the "default" domain name assigned to the queue
+
+To send emails, you should bind these queues to your exchange and then publish
+a message to this exchange. The message gets converted as shown in the table
+below. No content filtering is performed in this direction.
+
+  AMQP                   | SMTP
+ ------------------------|------------------------
+                         | From: noreply@<domain>
+  routing_key            | To
+  message_id             | Message-Id
+  content_type           | Content-Type
+  headers                | additional headers
+
+
+### SMTP to AMQP Conversion
 
 The adapter listens for incoming emails. When an email arrives at the adapter,
 its SMTP "To" address is examined to determine how it should be routed through
@@ -36,22 +60,26 @@ To receive the incoming emails, simply bind your queue(s) to this exchange. To
 catch emails sent to unknown recipients you may use an
 [Alternate Exchange](http://www.rabbitmq.com/ae.html).
 
-The message gets converted as shown in the table below. For each email published
-to the AMQP exchange the adapter will:
- - pass to AMQP only selected MIME headers (see `email_headers`)
- - select only one part of `multipart` content (see `email_filter`)
+When `server_auth` is `false` the server accepts e-mails from any client.
+When `server_auth` is `rabbitmq` the clients need to provide a username
+and password that is checked against the rabbitmq server.
 
-  SMTP                   | AMQP
- ------------------------|------------------------
-  From                   |
-  To                     | exchange, routing_key
-                         | message_id
-                         | timestamp
-  Subject                | Subject
-  Content-Type           | content_type (filtered)
-  Body                   | payload (filtered)
+#### SMTP Body Extraction
 
-The `email_filter` configuration option can be used to filter the SMTP body.
+The `email_filter` configuration option can be used to extract information
+from the email body. When enabled, the adapter will:
+ - select only one part of `multipart` content depending on user priority;
+ - remove extra space from `text` content.
+
+The function is optional, to not extract anything and send the entire e-mail
+as <<"application/mime">> set:
+
+   ```erlang
+   {email_filter, false}
+   ```
+
+Otherwise the `email_filter` identifies a list of content-types that shall
+be preferred. For example:
 
  - Extract the text body or (when no text) the first binary attachement.
    This is the default behaviour.
@@ -79,35 +107,23 @@ The `email_filter` configuration option can be used to filter the SMTP body.
 
    The atom `binary` represents any content other than <<"text">> and <<"multipart">>.
 
- - Do not extract anything and send the entire e-mail as <<"application/mime">>.
+#### SMTP Headers Extraction
 
-   ```erlang
-   {email_filter, false}
-   ```
+Depending on the `email_headers` option the message gets converted as shown in
+the table below. The adapter will pass to AMQP only selected MIME headers
 
-### AMQP to SMTP
+```erlang
+{email_headers, ["subject", "from", "charset"]},
+```
 
-The adapter also consumes a set of AMQP queues. Each queue is linked with a
-"default" domain name. When a message is consumed, its AMQP routing key is
-examined to determine the target SMTP address.
-
- - routing key that includes a domain part (i.e. the "@" character") is mapped
-   directly to an SMTP address
- - routing key that includes the mailbox name only (i.e. without "@") is combined
-   with the "default" domain name assigned to the queue
-
-To send emails, you should bind these queues to your exchange and then publish
-a message to this exchange. The message gets converted as shown in the table
-below. No content filtering is performed in this direction.
-
-  AMQP                   | SMTP
+  SMTP                   | AMQP
  ------------------------|------------------------
-                         | From: noreply@<domain>
-  routing_key            | To
-  message_id             | Message-Id
-  content_type           | Content-Type
-  headers                | additional headers
-  payload                | Body
+  From                   |
+  To                     | exchange, routing_key
+                         | message_id
+                         | timestamp
+  Subject                | Subject
+  Content-Type           | content_type
 
 
 ## Installation
