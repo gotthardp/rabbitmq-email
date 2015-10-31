@@ -17,13 +17,13 @@ extract_payload(Data) ->
         % extract the useful content
         _Else ->
             case filter_body(Data) of
-                {true, {Type,Subtype,Headers,Params,Body}} when is_binary(Body) ->
+                {send, {Type,Subtype,Headers,Params,Body}} when is_binary(Body) ->
                     {ok, <<Type/binary, $/, Subtype/binary>>, extract_headers(Headers, Params), Body};
-                {true, Multipart} ->
+                {send, Multipart} ->
                     {ok, <<"application/mime">>, [], mimemail:encode(Multipart)};
                 {empty, {_,_,Headers,Params,_}} ->
                     {ok, <<>>, extract_headers(Headers, Params), <<>>};
-                false ->
+                drop ->
                     error
             end
     end.
@@ -44,7 +44,7 @@ filter_body(Data) when is_binary(Data) ->
     catch
     What:Why ->
         rabbit_log:error("Message decode FAILED with ~p:~p~n", [What, Why]),
-        false
+        drop
     end;
 
 filter_body({<<"multipart">>, Subtype, Header, _Params, Parts}=Parent) ->
@@ -52,15 +52,15 @@ filter_body({<<"multipart">>, Subtype, Header, _Params, Parts}=Parent) ->
     % pass 1: filter undersirable content
     case filter_multipart(Subtype, Parts) of
         [] ->
-            false;
+            drop;
         [{Type2, Subtype2, _Header2, Params2, Parts2}] ->
             % keep the top-most headers
             % FIXME: some top-most should be preserved, but not Content-Type
-            {true, {Type2, Subtype2, Header, Params2, Parts2}};
+            {send, {Type2, Subtype2, Header, Params2, Parts2}};
         Parts3 when is_list(Parts3) ->
             % pass 2: select the best part
             {ok, Filter} = application:get_env(rabbitmq_email, email_filter),
-            {true, best_multipart(Parts3, lists:reverse(Filter), Parent)}
+            {send, best_multipart(Parts3, lists:reverse(Filter), Parent)}
     end;
 
 filter_body({<<"text">>, Subtype, Header, Params, Text}) ->
@@ -72,37 +72,38 @@ filter_body({<<"text">>, Subtype, Header, Params, Text}) ->
     if
         byte_size(Text3) > 0 ->
             % rabbit_log:info("Parsing text/~p~n", [Subtype]),
-            {true, {<<"text">>, Subtype, Header, Params, Text3}};
+            {send, {<<"text">>, Subtype, Header, Params, Text3}};
         Subtype == <<"plain">> ->
             {empty, {<<"text">>, Subtype, Header, Params, <<>>}};
         true ->
-            false
+            drop
     end;
 
 % remove proprietary formats
-filter_body({<<"application">>, <<"ms-tnef">>, _H, _A, _P}) -> false;
+filter_body({<<"application">>, <<"ms-tnef">>, _H, _A, _P}) -> drop;
 % and accept the rest
-filter_body(Body) -> {true, Body}.
+filter_body(Body) -> {send, Body}.
 
 % when text/plain in multipart/alternative is empty, the entire body is empty
 filter_multipart(<<"alternative">>, List) ->
     case filter_bodies(List) of
-        {true, _} -> [];
-        {false, Acc} -> Acc
+        {_, true} -> [];
+        {Acc, false} -> Acc
     end;
 
 filter_multipart(_, List) ->
-    {_, Acc} = filter_bodies(List),
+    {Acc, _} = filter_bodies(List),
     Acc.
 
 filter_bodies(List1) ->
-    lists:foldr(fun(Elem, {false, Acc}) ->
-        case filter_body(Elem) of
-            false -> {false, Acc};
-            {empty,_} -> {true, Acc};
-            {true,Value} -> {false, [Value|Acc]}
-        end
-    end, {false, []}, List1).
+    lists:foldr(
+        fun (Elem, {Acc, WasEmpty}) ->
+            case filter_body(Elem) of
+                {send,Value} -> {[Value|Acc], WasEmpty};
+                {empty,_} -> {Acc, true};
+                drop -> {Acc, WasEmpty}
+            end
+        end, {[], false}, List1).
 
 best_multipart(Parts, [{Type, SubType} | OtherPrios], BestSoFar) when is_binary(Type), is_binary(SubType) ->
     Better = lists:foldl(
