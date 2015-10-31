@@ -13,7 +13,7 @@ extract_payload(Data) ->
     case application:get_env(rabbitmq_email, email_filter) of
         % filtering is disable, just pass on the entire e-mail
         {ok, false} ->
-            {ok, <<"application/mime">>, [], mimemail:encode(Data)};
+            {ok, <<"application/mime">>, [], Data};
         % extract the useful content
         _Else ->
             case filter_body(Data) of
