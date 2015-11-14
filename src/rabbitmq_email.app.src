@@ -8,7 +8,7 @@
 
 {application, rabbitmq_email,
     [{description, "AMQP to E-Mail Gateway"},
-    {vsn, "0.0.1"},
+    {vsn, "0.0.2"},
     {modules, []},
     {registered, []},
     {mod, {rabbitmq_email_app, []}},

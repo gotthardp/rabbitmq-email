@@ -212,6 +212,12 @@ for more details.
     $ cd rabbitmq-email
     $ make
 
+### History
+* 0.0.2 (Nov 14, 2015)
+  * Supports authentication using RabbitMQ database.
+  * Payload filtering is now optional (Issue #7).
+* 0.0.1 (May 12, 2015) First release.
+
 
 ## Copyright and Licensing
 
