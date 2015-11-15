@@ -190,6 +190,8 @@ the same machine and forward to the RabbitMQ plug-in only some e-mail domains.
 
 ### Installation from source
 
+[![Build Status](https://travis-ci.org/gotthardp/rabbitmq-email.svg?branch=master)](https://travis-ci.org/gotthardp/rabbitmq-email)
+
 To enable non-ASCII characters in e-mails build
 [RabbitMQ eiconv Integration](https://github.com/gotthardp/rabbitmq-eiconv).
 This step is optional; when eiconv is disabled the `gen_smtp` will ignore
@@ -204,6 +206,7 @@ for more details.
     $ make
 
 ### History
+* 0.1.0 (under development) Compatible with RabbitMQ 3.6.x and later.
 * 0.0.2 (Nov 14, 2015)
   * Supports authentication using RabbitMQ database.
   * Payload filtering is now optional (Issue #7).
