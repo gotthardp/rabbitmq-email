@@ -11,7 +11,7 @@ otp_release:
   - 17.5
   - 18.0
 
-script: make samples
+script: EICONV=1 make samples
 
 cache:
   apt: true

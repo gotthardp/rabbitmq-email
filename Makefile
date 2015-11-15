@@ -1,6 +1,9 @@
 PROJECT = rabbitmq_email
 
-DEPS = amqp_client gen_smtp eiconv
+DEPS = amqp_client gen_smtp
+ifeq ($(EICONV),1)
+DEPS += eiconv
+endif
 
 TEST_DEPS = rabbitmq_test
 

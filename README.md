@@ -192,11 +192,6 @@ the same machine and forward to the RabbitMQ plug-in only some e-mail domains.
 
 [![Build Status](https://travis-ci.org/gotthardp/rabbitmq-email.svg?branch=master)](https://travis-ci.org/gotthardp/rabbitmq-email)
 
-To enable non-ASCII characters in e-mails build
-[RabbitMQ eiconv Integration](https://github.com/gotthardp/rabbitmq-eiconv).
-This step is optional; when eiconv is disabled the `gen_smtp` will ignore
-both header and content encoding schemes.
-
 Build and activate the RabbitMQ plug-in `rabbitmq-email`. See the
 [Plugin Development Guide](http://www.rabbitmq.com/plugin-development.html)
 for more details.
@@ -204,6 +199,16 @@ for more details.
     $ git clone https://github.com/gotthardp/rabbitmq-email.git
     $ cd rabbitmq-email
     $ make
+
+To enable non-ASCII characters in e-mails use
+
+    $ EICONV=1 make
+
+This is optional as it requires an Erlang NIF (eiconv). It is built
+automatically, but its module (eiconv-1.1.ez) is not portable to other platforms.
+When eiconv is disabled the `rabbitmq-email` plugin will ignore both header and
+content encoding schemes.
+
 
 ### History
 * 0.1.0 (under development) Compatible with RabbitMQ 3.6.x and later.
