@@ -190,24 +190,15 @@ the same machine and forward to the RabbitMQ plug-in only some e-mail domains.
 
 ### Installation from source
 
-First, download and build
-[RabbitMQ gen_smtp Integration](https://github.com/gotthardp/rabbitmq-gen-smtp).
-The `gen_smtp` provides a generic Erlang SMTP server and client only. The
-gateway functions are provided by the `rabbitmq-email` plugin.
-
-To enable non-ASCII characters in e-mails build also
+To enable non-ASCII characters in e-mails build
 [RabbitMQ eiconv Integration](https://github.com/gotthardp/rabbitmq-eiconv).
 This step is optional; when eiconv is disabled the `gen_smtp` will ignore
 both header and content encoding schemes.
 
-Then, build and activate the RabbitMQ plug-in `rabbitmq-email`. See the
+Build and activate the RabbitMQ plug-in `rabbitmq-email`. See the
 [Plugin Development Guide](http://www.rabbitmq.com/plugin-development.html)
 for more details.
 
-    $ git clone https://github.com/rabbitmq/rabbitmq-public-umbrella.git
-    $ cd rabbitmq-public-umbrella
-    $ make co
-    $ ./foreachrepo git checkout <tag>
     $ git clone https://github.com/gotthardp/rabbitmq-email.git
     $ cd rabbitmq-email
     $ make
