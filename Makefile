@@ -1,6 +1,6 @@
 PROJECT = rabbitmq_email
 
-DEPS = rabbit amqp_client gen_smtp
+DEPS = amqp_client gen_smtp
 ifeq ($(EICONV),1)
 DEPS += eiconv
 endif
@@ -11,17 +11,9 @@ DEP_PLUGINS = rabbit_common/mk/rabbitmq-plugin.mk
 
 NO_AUTOPATCH += gen_smtp eiconv
 
-PACKAGES += gen_smtp
-pkg_gen_smtp_name = gen_smtp
-pkg_gen_smtp_fetch = git
-pkg_gen_smtp_repo = https://github.com/gotthardp/gen_smtp.git
-pkg_gen_smtp_commit = master
-
-PACKAGES += eiconv
-pkg_eiconv_name = eiconv
-pkg_eiconv_fetch = git
-pkg_eiconv_repo = https://github.com/zotonic/eiconv.git
-pkg_eiconv_commit = master
+# use the patched gen_smtp from my fork
+dep_gen_smtp = git https://github.com/gotthardp/gen_smtp.git master
+dep_eiconv = git https://github.com/zotonic/eiconv.git master
 
 # FIXME: Use erlang.mk patched for RabbitMQ, while waiting for PRs to be
 # reviewed and merged.
@@ -44,5 +36,7 @@ test/data/samples.zip:
 
 WITH_BROKER_TEST_COMMANDS := \
         eunit:test(rabbit_email_tests,[verbose,{report,{eunit_surefire,[{dir,\"test\"}]}}])
+#WITH_BROKER_TEST_MAKEVARS := \
+#        RABBITMQ_CONFIG_FILE=$(CURDIR)/test/rabbit-test
 
 # end of file
