@@ -211,7 +211,8 @@ content encoding schemes.
 
 
 ### History
-* 0.1.0 (under development) Compatible with RabbitMQ 3.6.x and later.
+* 0.1.0 (Dec 22, 2015)
+  * Compatibility changes for RabbitMQ 3.6.x.
 * 0.0.2 (Nov 14, 2015)
   * Supports authentication using RabbitMQ database.
   * Payload filtering is now optional (Issue #7).
