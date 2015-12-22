@@ -5,7 +5,7 @@ ifeq ($(EICONV),1)
 DEPS += eiconv
 endif
 
-TEST_DEPS = rabbitmq_test
+TEST_DEPS = rabbit
 
 DEP_PLUGINS = rabbit_common/mk/rabbitmq-plugin.mk
 
