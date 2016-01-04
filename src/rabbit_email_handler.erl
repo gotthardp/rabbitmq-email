@@ -41,7 +41,7 @@ handle_HELO(Hostname, State) ->
     rabbit_log:info("HELO from ~s~n", [Hostname]),
     case application:get_env(rabbitmq_email, server_auth) of
         {ok, false} ->
-            {ok, 655360, State#state{auth_user=anonymous}}; % 640kb should be enough for anyone
+            {ok, 655360, set_user_as_anonymous(State)}; % 640kb should be enough for anyone
         _Else ->
             % we expect EHLO will come
             {ok, State} % use the default 10mb limit
