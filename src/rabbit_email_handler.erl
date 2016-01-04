@@ -49,13 +49,16 @@ handle_HELO(Hostname, State) ->
 
 handle_EHLO(Hostname, Extensions, State) ->
     rabbit_log:info("EHLO from ~s~n", [Hostname]),
-    {ok, auth_extensions(starttls_extension(Extensions)), State}.
-
-auth_extensions(Extensions) ->
+    ExtensionsTLS = starttls_extension(Extensions),
     case application:get_env(rabbitmq_email, server_auth) of
-        {ok, false} -> Extensions;
-        {ok, rabbitmq} -> [{"AUTH", "PLAIN LOGIN"} | Extensions]
+        {ok, false} ->
+            {ok, ExtensionsTLS, set_user_as_anonymous(State)};
+        {ok, rabbitmq} ->
+            {ok, [{"AUTH", "PLAIN LOGIN"} | ExtensionsTLS], State}
     end.
+
+set_user_as_anonymous(State) ->
+    State#state{auth_user=anonymous}.
 
 starttls_extension(Extensions) ->
     case application:get_env(rabbitmq_email, server_starttls) of
