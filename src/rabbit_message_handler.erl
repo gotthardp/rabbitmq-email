@@ -60,19 +60,10 @@ handle_info({#'basic.deliver'{routing_key=Key, consumer_tag=Tag}, Content}, Stat
     #'P_basic'{message_id = MessageId, headers = Headers} = Properties,
     {Type, Subtype} = get_content_type(Properties#'P_basic'.content_type),
 
-    Headers2 = lists:map(fun
-            ({Name, longstr, Value}) -> {Name, Value};
-            ({Name, array, List}) -> {Name, lists:foldr(fun
-                    ({longstr, Value}, undefined) -> Value;
-                    ({longstr, Value}, Acc) -> <<Value/binary, $;, Acc/binary>>
-                end, undefined, List)}
-        end, Headers),
-
-    Headers3 = Headers2 ++
+    Headers2 = transform_headers_to_email(Headers) ++
         [{<<"Message-Id">>, MessageId}],
-
     rabbit_email_sender:send_email(
-        construct_address(Key, Tag), Tag, {Type, Subtype}, Headers3, Payload),
+        construct_address(Key, Tag), Tag, {Type, Subtype}, Headers2, Payload),
     {noreply, State};
 
 handle_info(Msg, State) ->
@@ -92,6 +83,17 @@ get_content_type(undefined) ->
 get_content_type(Binary) ->
     [Type, Subtype|_Others] = binary:split(Binary, [<<$/>>, <<$;>>], [global]),
     {Type, Subtype}.
+
+transform_headers_to_email(undefined) ->
+    [];
+transform_headers_to_email(Headers) ->
+    lists:map(fun
+        ({Name, longstr, Value}) -> {Name, Value};
+        ({Name, array, List}) -> {Name, lists:foldr(fun
+                ({longstr, Value}, undefined) -> Value;
+                ({longstr, Value}, Acc) -> <<Value/binary, $;, Acc/binary>>
+            end, undefined, List)}
+    end, Headers).
 
 construct_address(Key, Tag) ->
     case binary:match(Key, <<"@">>) of
