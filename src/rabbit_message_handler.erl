@@ -21,6 +21,7 @@ start_link({VHost, Queue}, Domain) ->
     gen_server:start_link(?MODULE, [{VHost, Queue}, Domain], []).
 
 init([{VHost, Queue}, Domain]) ->
+    process_flag(trap_exit, true),
     {ok, Connection} = amqp_connection:start(#amqp_params_direct{virtual_host=VHost}),
     try_declaring_queue(Connection, Queue),
 
