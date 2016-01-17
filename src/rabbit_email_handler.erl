@@ -67,6 +67,7 @@ starttls_extension(Extensions) ->
     end.
 
 handle_MAIL(_From, State=#state{auth_user=undefined}) ->
+    rabbit_log:error("SMTP authentication is required~n"),
     {error, ?AUTH_REQUIRED, State};
 handle_MAIL(_From, State) ->
     % you can accept or reject the FROM address here
@@ -77,6 +78,7 @@ handle_MAIL_extension(Extension, _State) ->
     error.
 
 handle_RCPT(_From, State=#state{auth_user=undefined}) ->
+    rabbit_log:error("SMTP authentication is required~n"),
     {error, ?AUTH_REQUIRED, State};
 handle_RCPT(_To, State) ->
     % you can accept or reject RCPT TO addesses here, one per call
@@ -87,6 +89,7 @@ handle_RCPT_extension(Extension, _State) ->
     error.
 
 handle_DATA(_From, _To, _Data, #state{auth_user=undefined} = State) ->
+    rabbit_log:error("SMTP authentication is required~n"),
     {error, ?AUTH_REQUIRED, State};
 handle_DATA(_From, _To, <<>>, State) ->
     {error, "552 Message too small", State};
