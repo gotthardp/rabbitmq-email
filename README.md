@@ -198,11 +198,11 @@ for more details.
 
     $ git clone https://github.com/gotthardp/rabbitmq-email.git
     $ cd rabbitmq-email
-    $ make
+    $ make dist
 
 To enable non-ASCII characters in e-mails use
 
-    $ EICONV=1 make
+    $ EICONV=1 make dist
 
 This is optional as it requires an Erlang NIF (eiconv). It is built
 automatically, but its module (eiconv-1.1.ez) is not portable to other platforms.
