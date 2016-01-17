@@ -9,7 +9,7 @@ you = "you@example.com"
 msg = MIMEText("Hello world!")
 msg['From'] = me
 msg['To'] = you
-msg['Subject'] = 'Hello'
+msg['Subject'] = 'Greetings'
 
 s = smtplib.SMTP('localhost', 2525)
 s.login("guest", "guest")

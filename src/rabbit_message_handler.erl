@@ -63,8 +63,7 @@ handle_info({#'basic.deliver'{routing_key=Key, consumer_tag=Tag}, Content}, Stat
 
     Headers2 = transform_headers_to_email(Headers) ++
         [{<<"Message-Id">>, MessageId}],
-    rabbit_email_sender:send_email(
-        construct_address(Key, Tag), Tag, {Type, Subtype}, Headers2, Payload),
+    rabbit_email_sender:send_email(Key, Tag, {Type, Subtype}, Headers2, Payload),
     {noreply, State};
 
 handle_info(Msg, State) ->
@@ -95,12 +94,6 @@ transform_headers_to_email(Headers) ->
                 ({longstr, Value}, Acc) -> <<Value/binary, $;, Acc/binary>>
             end, undefined, List)}
     end, Headers).
-
-construct_address(Key, Tag) ->
-    case binary:match(Key, <<"@">>) of
-        nomatch -> <<Key/binary, $@, Tag/binary>>;
-        _Else -> Key
-    end.
 
 % end of file
 

@@ -33,6 +33,7 @@
         {email_queues,
             [{{<<"/">>, <<"email-out">>}, <<"example.com">>}
         ]},
+        {email_from, <<"noreply">>},
         {client_sender, "noreply@example.com"},
         {client_config, [
             {relay, "smtp.example.com"}

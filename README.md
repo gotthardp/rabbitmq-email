@@ -190,7 +190,9 @@ For example:
         [{{<<"/">>, <<"email-out">>}, <<"example.com">>}
     ]},
     % sender indicated in the From header
-    {client_sender, "noreply@example.com"},
+    {email_from, <<"noreply">>},
+    % sender indicated in the SMTP from
+    {client_sender, "rabbitmq@example.com"},
     % gen_smtp client parameters
     % see https://github.com/Vagabond/gen_smtp#client-example
     {client_config, [
