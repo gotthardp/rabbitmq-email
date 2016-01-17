@@ -79,7 +79,7 @@ set_content_type(<<>>) -> undefined;
 set_content_type(ContentType) -> ContentType.
 
 amqp_ts() ->
-    {MegaSecs, Secs, _MicroSecs} = now(),
+    {MegaSecs, Secs, _MicroSecs} = time_compat:timestamp(),
     MegaSecs * 1000 * 1000 + Secs.
 
 % end of file
