@@ -21,6 +21,7 @@ dep_eiconv = git https://github.com/zotonic/eiconv.git master
 ERLANG_MK_REPO = https://github.com/rabbitmq/erlang.mk.git
 ERLANG_MK_COMMIT = rabbitmq-tmp
 
+current_rmq_ref = stable
 include rabbitmq-components.mk
 include erlang.mk
 
