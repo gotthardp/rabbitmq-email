@@ -24,8 +24,8 @@ The mapping works in both directions.
 
 ### AMQP to SMTP Conversion
 
-The adapter consumes a set of AMQP queues. Each queue is linked with a
-"default" domain name. When a message is consumed, its AMQP routing key is
+The adapter consumes a set of AMQP queues (e.g. `email-out`). Each queue is linked
+with a "default" domain name. When a message is consumed, its AMQP routing key is
 examined to determine the target SMTP address.
 
  - routing key that includes a domain part (i.e. the "@" character") is mapped
@@ -34,8 +34,26 @@ examined to determine the target SMTP address.
    with the "default" domain name assigned to the queue
 
 To send emails, you should bind these queues to your exchange and then publish
-a message to this exchange. The message gets converted as shown in the table
-below. No content filtering is performed in this direction.
+a message to this exchange. For example:
+```python
+import pika
+
+connection = pika.BlockingConnection(
+    pika.ConnectionParameters(host='localhost'))
+channel = connection.channel()
+channel.exchange_declare(exchange='X', type='topic')
+channel.queue_bind(exchange='X', queue='email-out', routing_key='#')
+
+channel.basic_publish(exchange='X',
+    routing_key='recipient@example.com',
+    properties=pika.BasicProperties(
+        content_type = 'text/plain',
+        headers = {'Subject':'Greetings'}),
+    body='Hello world!')
+connection.close()
+```
+The message gets converted as shown in the table below. No content filtering
+is performed in this direction.
 
   AMQP                   | SMTP
  ------------------------|------------------------
@@ -56,8 +74,26 @@ the system. First, the address is split into a mailbox name and a domain part.
    AMQP virtual-host and AMQP exchange name
  - the mailbox name is mapped to an AMQP routing key
 
-To receive the incoming emails, simply bind your queue(s) to this exchange. To
-catch emails sent to unknown recipients you may use an
+To receive the incoming emails, simply bind your queue(s) to this exchange.
+For example:
+```python
+import smtplib
+from email.mime.text import MIMEText
+
+me = "sender@example.com"
+you = "recipient@example.com"
+
+msg = MIMEText("Hello world!")
+msg['From'] = me
+msg['To'] = you
+msg['Subject'] = 'Greetings'
+
+s = smtplib.SMTP('localhost', 2525)
+s.login("guest", "guest")
+s.sendmail(me, [you], msg.as_string())
+s.quit()
+```
+To catch emails sent to unknown recipients you may use an
 [Alternate Exchange](http://www.rabbitmq.com/ae.html).
 
 When `server_auth` is `false` the server accepts e-mails from any client.
