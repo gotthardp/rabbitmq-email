@@ -230,6 +230,10 @@ the same machine and forward to the RabbitMQ plug-in only some e-mail domains.
 
 [![Build Status](https://travis-ci.org/gotthardp/rabbitmq-email.svg?branch=master)](https://travis-ci.org/gotthardp/rabbitmq-email)
 
+If you are on a Debian-based system then you need the `erlang-nox`, `erlang-dev`
+and `erlang-src` packages installed. If you are building and installing Erlang
+from source then you must ensure that openssl is installed on your system. 
+
 Build and activate the RabbitMQ plug-in `rabbitmq-email`. See the
 [Plugin Development Guide](http://www.rabbitmq.com/plugin-development.html)
 for more details.
@@ -246,7 +250,6 @@ This is optional as it requires an Erlang NIF (eiconv). It is built
 automatically, but its module (eiconv-1.1.ez) is not portable to other platforms.
 When eiconv is disabled the `rabbitmq-email` plugin will ignore both header and
 content encoding schemes.
-
 
 ### History
 * 0.1.0 (Dec 22, 2015)
