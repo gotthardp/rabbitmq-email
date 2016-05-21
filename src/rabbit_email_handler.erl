@@ -107,7 +107,7 @@ handle_DATA(From, To, Data, State=#state{sender_pid=SenderPid}) ->
             rabbit_log:info("~s message from ~s to ~p queued as ~s~n", [ContentType, From, To, Reference]),
             gen_server:cast(SenderPid, {Reference, To, ContentType, Headers, Body}),
             {ok, Reference, State};
-        false ->
+        error ->
             rabbit_log:error("message from ~s to ~p cannot be delivered~n", [From, To]),
             {error, "554 Message cannot be delivered", State}
     end.
