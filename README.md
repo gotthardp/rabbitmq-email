@@ -1,28 +1,68 @@
 # SMTP Gateway Plugin for RabbitMQ
-Maps SMTP to AMQP (to convert an incoming email to an AMQP message) and AMQP
-to SMTP (to send an email from an AMQP message).
 
-This implementation aims to replace the [rabbitmq-smtp](https://github.com/rabbitmq/rabbitmq-smtp).
+Maps SMTP to AMQP 0-9-1 (to convert an incoming email to an AMQP 0-9-1 message) and AMQP 0-9-1
+to SMTP (to send an email from an AMQP message). Certain interoperability with other
+protocols, namely STOMP, can be achieved as well.
+
+This implementation aims to replace the [rabbitmq-smtp](https://github.com/rabbitmq/rabbitmq-smtp) plugin.
 It is based on a more advanced [gen_smtp] (https://github.com/Vagabond/gen_smtp)
 rather than on [erlang-smtp] (https://github.com/tonyg/erlang-smtp).
 
-This plugin is experimental. The described functionality is fully implemented
-and partially tested. I seek feature requests and early adopters.
-
-If your installation of the plugin fails to process an e-mail, please:
- * re-send this e-mail to my instance of the plugin at 'rabbitmq[at]swimgate.eu'
- * create an [issue](https://github.com/gotthardp/rabbitmq-email/issues) and
-   describe what you expected and what did happen
-
-Please re-send the e-mail exactly the same way it failed for you. Do not use the
-forward button, do not add any explanation. I need the original MIME headers and body.
+This plugin is moderately mature. The described functionality is fully implemented
+and has been used in production for a couple of years. Feedback from users and test suite
+contributions are encouraged.
 
 
-## Mapping between SMTP and AMQP
+## Installation
 
-The mapping works in both directions.
+Binary releases of this plugin are [published on GitHub](https://github.com/gotthardp/rabbitmq-email/releases).
 
-### AMQP to SMTP Conversion
+### RabbitMQ Configuration
+
+Add the plug-in configuration section. See
+[RabbitMQ Configuration guide](https://www.rabbitmq.com/configure.html) for more details.
+
+For example:
+
+```erlang
+{rabbitmq_email, [
+    % gen_smtp server parameters
+    % see https://github.com/Vagabond/gen_smtp#server-example
+    {server_config, [
+        [{port, 2525}, {protocol, tcp}, {domain, "example.com"}, {address,{0,0,0,0}}]
+    ]},
+    % how clients are authenticated; either 'false' or 'rabbitmq' (default)
+    {server_auth, rabbitmq},
+    % whether STARTTLS shall be offered; either 'true' or 'false' (default)
+    {server_starttls, true},
+    % inbound email exchanges: [{email-domain, {vhost, exchange}}, ...}
+    {email_domains,
+        [{<<"example.com">>, {<<"/">>, <<"email-in">>}}
+    ]},
+
+    % outbound email queues: [{{vhost, queue}, email-domain}, ...]
+    {email_queues,
+        [{{<<"/">>, <<"email-out">>}, <<"example.com">>}
+    ]},
+    % sender indicated in the From header
+    {email_from, <<"noreply">>},
+    % sender indicated in the SMTP from
+    {client_sender, "rabbitmq@example.com"},
+    % gen_smtp client parameters
+    % see https://github.com/Vagabond/gen_smtp#client-example
+    {client_config, [
+        {relay, "smtp.example.com"}
+    ]}
+    ...
+]}
+```
+
+
+## Documentation
+
+The mapping between SMTP and AMQP 0-9-1 works in both directions.
+
+### AMQP 0-9-1 to SMTP Conversion Workflow
 
 The adapter consumes a set of AMQP queues (e.g. `email-out`). Each queue is linked
 with a "default" domain name. When a message is consumed, its AMQP routing key is
@@ -64,7 +104,7 @@ is performed in this direction.
   headers                | additional headers
 
 
-### SMTP to AMQP Conversion
+### SMTP to AMQP 0-9-1 Conversion Workflow
 
 The adapter listens for incoming emails. When an email arrives at the adapter,
 its SMTP "To" address is examined to determine how it should be routed through
@@ -162,47 +202,9 @@ the table below. The adapter will pass to AMQP only selected MIME headers
   Content-Type           | content_type
 
 
-## Installation
-
-### RabbitMQ Configuration
-Add the plug-in configuration section. See
-[RabbitMQ Configuration](https://www.rabbitmq.com/configure.html) for more details.
-
-For example:
-```erlang
-{rabbitmq_email, [
-    % gen_smtp server parameters
-    % see https://github.com/Vagabond/gen_smtp#server-example
-    {server_config, [
-        [{port, 2525}, {protocol, tcp}, {domain, "example.com"}, {address,{0,0,0,0}}]
-    ]},
-    % how clients are authenticated; either 'false' or 'rabbitmq' (default)
-    {server_auth, rabbitmq},
-    % whether STARTTLS shall be offered; either 'true' or 'false' (default)
-    {server_starttls, true},
-    % inbound email exchanges: [{email-domain, {vhost, exchange}}, ...}
-    {email_domains,
-        [{<<"example.com">>, {<<"/">>, <<"email-in">>}}
-    ]},
-
-    % outbound email queues: [{{vhost, queue}, email-domain}, ...]
-    {email_queues,
-        [{{<<"/">>, <<"email-out">>}, <<"example.com">>}
-    ]},
-    % sender indicated in the From header
-    {email_from, <<"noreply">>},
-    % sender indicated in the SMTP from
-    {client_sender, "rabbitmq@example.com"},
-    % gen_smtp client parameters
-    % see https://github.com/Vagabond/gen_smtp#client-example
-    {client_config, [
-        {relay, "smtp.example.com"}
-    ]}
-    ...
-]}
-```
 
 ### Postfix Integration
+
 You may want to run a standard [Postfix](http://www.postfix.org) SMTP server on
 the same machine and forward to the RabbitMQ plug-in only some e-mail domains.
 
@@ -226,32 +228,39 @@ the same machine and forward to the RabbitMQ plug-in only some e-mail domains.
   .example.com smtp:mail.example.com:2525
   ```
 
-### Installation from source
+## Getting Help
 
-[![Build Status](https://travis-ci.org/gotthardp/rabbitmq-email.svg?branch=master)](https://travis-ci.org/gotthardp/rabbitmq-email)
+In case the plugin doesn't seem to work as expected, please start a
+[rabbitmq-users](https://groups.google.com/group/rabbitmq-users/)
+thread and provide a way to reproduce:
 
-If you are on a Debian-based system then you need the `erlang-nox`, `erlang-dev`
-and `erlang-src` packages installed. If you are building and installing Erlang
-from source then you must ensure that openssl is installed on your system. 
+ * RabbitMQ version used
+ * Plugin version used
+ * Steps to reproduce
+ * Server logs
 
-Build and activate the RabbitMQ plug-in `rabbitmq-email`. See the
-[Plugin Development Guide](http://www.rabbitmq.com/plugin-development.html)
-for more details.
+If the email => message workflow is used, please provide the exact
+email used. Do not use the forward button or modify the content in any way.
+Original MIME headers and body are critically important in troubleshooting.
 
-    $ git clone https://github.com/gotthardp/rabbitmq-email.git
-    $ cd rabbitmq-email
-    $ make dist
 
-To enable non-ASCII characters in e-mails use
+### Building from Source
 
-    $ EICONV=1 make dist
+You can build and install it like any other plugin (see
+[the plugin development guide](http://www.rabbitmq.com/plugin-development.html)).
 
-This is optional as it requires an Erlang NIF (eiconv). It is built
-automatically, but its module (eiconv-1.1.ez) is not portable to other platforms.
-When eiconv is disabled the `rabbitmq-email` plugin will ignore both header and
+To enable non-ASCII characters in e-mails, export `EICONV=1` and run `make dist`:
+
+    EICONV=1 make dist
+
+This is optional as it requires an Erlang NIF, `eiconv`. It is built
+automatically, but since this is a NIF (native code) its module
+(eiconv-1.1.ez) is not portable between platforms.  When `eiconv` is
+disabled the `rabbitmq-email` plugin will ignore both header and
 content encoding schemes.
 
-### History
+### Change Log
+
 * 0.1.0 (Dec 22, 2015)
   * Compatibility changes for RabbitMQ 3.6.x.
 * 0.0.2 (Nov 14, 2015)
@@ -262,7 +271,8 @@ content encoding schemes.
 
 ## Copyright and Licensing
 
-Copyright (c) 2014-2015 Petr Gotthard <petr.gotthard@centrum.cz>
+Copyright (c) 2014-2017 Petr Gotthard <petr.gotthard@centrum.cz>
+Copyright (c) 2017 Pivotal Software, Inc.
 
 This package is subject to the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License. You may obtain a
