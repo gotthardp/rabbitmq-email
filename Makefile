@@ -1,4 +1,5 @@
 PROJECT = rabbitmq_email
+PROJECT_DESCRIPTION = RabbitMQ plugin that converts incoming emails into messages and messages into outgoing emails
 
 DEPS = amqp_client gen_smtp
 ifeq ($(EICONV),1)
@@ -7,11 +8,12 @@ endif
 
 TEST_DEPS = rabbit
 
+DEP_EARLY_PLUGINS = rabbit_common/mk/rabbitmq-early-plugin.mk
 DEP_PLUGINS = rabbit_common/mk/rabbitmq-plugin.mk
 
 NO_AUTOPATCH += gen_smtp eiconv
 
-# use the patched gen_smtp from my fork
+# use the patched gen_smtp from a fork
 dep_gen_smtp = git https://github.com/gotthardp/gen_smtp.git master
 dep_eiconv = git https://github.com/zotonic/eiconv.git master
 
@@ -21,7 +23,6 @@ dep_eiconv = git https://github.com/zotonic/eiconv.git master
 ERLANG_MK_REPO = https://github.com/rabbitmq/erlang.mk.git
 ERLANG_MK_COMMIT = rabbitmq-tmp
 
-current_rmq_ref = stable
 include rabbitmq-components.mk
 include erlang.mk
 
@@ -37,7 +38,3 @@ test/data/samples.zip:
 
 WITH_BROKER_TEST_COMMANDS := \
         eunit:test(rabbit_email_tests,[verbose,{report,{eunit_surefire,[{dir,\"test\"}]}}])
-#WITH_BROKER_TEST_MAKEVARS := \
-#        RABBITMQ_CONFIG_FILE=$(CURDIR)/test/rabbit-test
-
-# end of file
