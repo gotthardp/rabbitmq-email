@@ -4,11 +4,12 @@
 % file, You can obtain one at http://mozilla.org/MPL/2.0/.
 %
 % Copyright (C) 2014-2015 Petr Gotthard <petr.gotthard@centrum.cz>
+% Copyright (C) 2017 Pivotal Software, Inc.
 %
 
 {application, rabbitmq_email,
-    [{description, "AMQP to E-Mail Gateway"},
-    {vsn, "0.1.0"},
+    [{description, " E-mail gateway for AMQP 0-9-1"},
+    {vsn, "0.2.0"},
     {modules, []},
     {registered, []},
     {mod, {rabbitmq_email_app, []}},

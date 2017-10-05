@@ -1,7 +1,13 @@
 PROJECT = rabbitmq_email
 PROJECT_DESCRIPTION = RabbitMQ plugin that converts incoming emails into messages and messages into outgoing emails
 
-DEPS = amqp_client gen_smtp
+# use the patched gen_smtp from a fork
+dep_gen_smtp = git https://github.com/rabbitmq/gen_smtp.git master
+dep_eiconv = git https://github.com/zotonic/eiconv.git master
+
+BUILD_DEPS += gen_smtp
+
+DEPS = gen_smtp rabbit_common amqp_client rabbit
 ifeq ($(EICONV),1)
 DEPS += eiconv
 endif
@@ -11,11 +17,7 @@ TEST_DEPS = rabbit
 DEP_EARLY_PLUGINS = rabbit_common/mk/rabbitmq-early-plugin.mk
 DEP_PLUGINS = rabbit_common/mk/rabbitmq-plugin.mk
 
-NO_AUTOPATCH += gen_smtp eiconv
-
-# use the patched gen_smtp from a fork
-dep_gen_smtp = git https://github.com/gotthardp/gen_smtp.git master
-dep_eiconv = git https://github.com/zotonic/eiconv.git master
+NO_AUTOPATCH += eiconv
 
 # FIXME: Use erlang.mk patched for RabbitMQ, while waiting for PRs to be
 # reviewed and merged.
