@@ -1,12 +1,15 @@
 # SMTP Gateway Plugin for RabbitMQ
 
-Maps SMTP to AMQP 0-9-1 (to convert an incoming email to an AMQP 0-9-1 message) and AMQP 0-9-1
-to SMTP (to send an email from an AMQP message). Certain interoperability with other
-protocols, namely STOMP, can be achieved as well.
+This plugin makes SMTP and AMQP 0-9-1 interoperate. It can
+
+ * convert incoming emails to AMQP 0-9-1 messages
+ * consume AMQP 0-9-1 messages and send out emails
+
+Certain interoperability with other protocols, namely STOMP, can be achieved as well.
 
 This implementation aims to replace the [rabbitmq-smtp](https://github.com/rabbitmq/rabbitmq-smtp) plugin.
 It is based on a more advanced [gen_smtp] (https://github.com/Vagabond/gen_smtp)
-rather than on [erlang-smtp] (https://github.com/tonyg/erlang-smtp).
+rather than on [erlang-smtp](https://github.com/tonyg/erlang-smtp).
 
 This plugin is moderately mature. The described functionality is fully implemented
 and has been used in production for a couple of years. Feedback from users and test suite
@@ -17,51 +20,10 @@ contributions are encouraged.
 
 Binary releases of this plugin are [published on GitHub](https://github.com/gotthardp/rabbitmq-email/releases).
 
-### RabbitMQ Configuration
-
-Add the plug-in configuration section. See
-[RabbitMQ Configuration guide](https://www.rabbitmq.com/configure.html) for more details.
-
-For example:
-
-```erlang
-{rabbitmq_email, [
-    %% gen_smtp server parameters
-    %% see https://github.com/Vagabond/gen_smtp#server-example
-    {server_config, [
-        [{port, 2525}, {protocol, tcp}, {domain, "example.com"}, {address,{0,0,0,0}}]
-    ]},
-    %% how clients are authenticated; either 'false' or 'rabbitmq' (default)
-    {server_auth, rabbitmq},
-    %% whether STARTTLS shall be offered; either 'true' or 'false' (default)
-    {server_starttls, true},
-
-    %% maps inbound email domains to vhosts and exchanges: [{email-domain, {vhost, exchange}}, ...}
-    {email_domains,
-        [{<<"example.com">>, {<<"/">>, <<"email-in">>}}
-    ]},
-
-    %% outbound email queues: [{{vhost, queue}, email-domain}, ...]
-    {email_queues,
-        [{{<<"/">>, <<"email-out">>}, <<"example.com">>}
-    ]},
-    %% sender indicated in the From header
-    {email_from, <<"noreply">>},
-    %% sender indicated in the SMTP from
-    {client_sender, "rabbitmq@example.com"},
-    %% gen_smtp client parameters
-    %% see https://github.com/Vagabond/gen_smtp#client-example
-    {client_config, [
-        {relay, "smtp.example.com"}
-    ]}
-    ...
-]}
-```
-
-
 ## Documentation
 
-The mapping between SMTP and AMQP 0-9-1 works in both directions.
+The mapping between SMTP and AMQP 0-9-1 works in both directions. Before we provide a specific
+configuration example, let's take a look at the conceptual mapping between messages in the two protocols.
 
 ### AMQP 0-9-1 to SMTP Conversion Workflow
 
@@ -203,6 +165,55 @@ the table below. The adapter will pass to AMQP only selected MIME headers
   Content-Type           | content_type
 
 
+
+### RabbitMQ Configuration Example
+
+Like with most plugins, this one needs a configuration section in the RabbitMQ config file.
+[RabbitMQ Configuration guide](https://www.rabbitmq.com/configure.html) for more details.
+
+All keys used by this plugin are under the `rabbitmq_email` section (app). Key settings are:
+
+ * `rabbitmq_email.server_config` defines SMTP server parameters (same as in `gen_smtp`)
+ * `rabbitmq_email.email_domains` maps sender domains to RabbitMQ [virtual hosts and exchanges](http://www.rabbitmq.com/tutorials/amqp-concepts.html)
+ * `rabbitmq_email.emal_queues` maps [virtual hosts and queues](http://www.rabbitmq.com/tutorials/amqp-concepts.html) to outgoing email domains
+ * `rabbitmq_email.client_config` configures SMTP client settings for outgoing email
+ * `rabbitmq_email.emal_from` and `rabbitmq_email.client_sender` configure the `FROM` header used in outgoing emails
+
+For example:
+
+```erlang
+{rabbitmq_email, [
+    %% gen_smtp server parameters
+    %% see https://github.com/Vagabond/gen_smtp#server-example
+    {server_config, [
+        [{port, 2525}, {protocol, tcp}, {domain, "example.com"}, {address,{0,0,0,0}}]
+    ]},
+    %% how clients are authenticated; either 'false' or 'rabbitmq' (default)
+    {server_auth, rabbitmq},
+    %% whether STARTTLS shall be offered; either 'true' or 'false' (default)
+    {server_starttls, true},
+
+    %% maps inbound email domains to vhosts and exchanges: [{email-domain, {vhost, exchange}}, ...}
+    {email_domains,
+        [{<<"example.com">>, {<<"/">>, <<"email-in">>}}
+    ]},
+
+    %% outbound email queues: [{{vhost, queue}, email-domain}, ...]
+    {email_queues,
+        [{{<<"/">>, <<"email-out">>}, <<"example.com">>}
+    ]},
+    %% sender indicated in the From header
+    {email_from, <<"noreply">>},
+    %% sender indicated in the SMTP from
+    {client_sender, "rabbitmq@example.com"},
+    %% gen_smtp client parameters
+    %% see https://github.com/Vagabond/gen_smtp#client-example
+    {client_config, [
+        {relay, "smtp.example.com"}
+    ]}
+    ...
+]}
+```
 
 ### Postfix Integration
 
