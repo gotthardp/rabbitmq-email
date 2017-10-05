@@ -153,6 +153,9 @@ handle_info({'EXIT', SenderPid, _Reason}, #state{sender_pid=SenderPid} = State) 
     % sender failed, we terminate as well
     {stop, normal, State};
 
+handle_info({'EXIT', _, normal}, State) ->
+    {noreply, State};
+
 handle_info(Info, State) ->
     rabbit_log:info("~w~n", [Info]),
     {noreply, State}.
