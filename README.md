@@ -26,30 +26,31 @@ For example:
 
 ```erlang
 {rabbitmq_email, [
-    % gen_smtp server parameters
-    % see https://github.com/Vagabond/gen_smtp#server-example
+    %% gen_smtp server parameters
+    %% see https://github.com/Vagabond/gen_smtp#server-example
     {server_config, [
         [{port, 2525}, {protocol, tcp}, {domain, "example.com"}, {address,{0,0,0,0}}]
     ]},
-    % how clients are authenticated; either 'false' or 'rabbitmq' (default)
+    %% how clients are authenticated; either 'false' or 'rabbitmq' (default)
     {server_auth, rabbitmq},
-    % whether STARTTLS shall be offered; either 'true' or 'false' (default)
+    %% whether STARTTLS shall be offered; either 'true' or 'false' (default)
     {server_starttls, true},
-    % inbound email exchanges: [{email-domain, {vhost, exchange}}, ...}
+
+    %% maps inbound email domains to vhosts and exchanges: [{email-domain, {vhost, exchange}}, ...}
     {email_domains,
         [{<<"example.com">>, {<<"/">>, <<"email-in">>}}
     ]},
 
-    % outbound email queues: [{{vhost, queue}, email-domain}, ...]
+    %% outbound email queues: [{{vhost, queue}, email-domain}, ...]
     {email_queues,
         [{{<<"/">>, <<"email-out">>}, <<"example.com">>}
     ]},
-    % sender indicated in the From header
+    %% sender indicated in the From header
     {email_from, <<"noreply">>},
-    % sender indicated in the SMTP from
+    %% sender indicated in the SMTP from
     {client_sender, "rabbitmq@example.com"},
-    % gen_smtp client parameters
-    % see https://github.com/Vagabond/gen_smtp#client-example
+    %% gen_smtp client parameters
+    %% see https://github.com/Vagabond/gen_smtp#client-example
     {client_config, [
         {relay, "smtp.example.com"}
     ]}
@@ -110,9 +111,9 @@ The adapter listens for incoming emails. When an email arrives at the adapter,
 its SMTP "To" address is examined to determine how it should be routed through
 the system. First, the address is split into a mailbox name and a domain part.
 
- - the domain part (e.g. "`@rabbitmq.com`") is used to map to an
-   AMQP virtual-host and AMQP exchange name
- - the mailbox name is mapped to an AMQP routing key
+ - the domain part (e.g. "`@rabbitmq.com`") is used to map sender's address to a
+   RabbitMQ virtual host and exchange name
+ - the mailbox name is mapped to an AMQP 0-9-1 routing key
 
 To receive the incoming emails, simply bind your queue(s) to this exchange.
 For example:
