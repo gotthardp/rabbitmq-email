@@ -18,7 +18,8 @@ contributions are encouraged.
 
 ## Installation
 
-Binary releases of this plugin are [published on GitHub](https://github.com/gotthardp/rabbitmq-email/releases).
+Binary releases of this plugin are [published on GitHub](https://github.com/gotthardp/rabbitmq-email/releases)
+and [Bintray](https://bintray.com/rabbitmq/community-plugins/rabbitmq_email) (note: on Bintray, [gen_smtp](https://dl.bintray.com/rabbitmq/community-plugins/gen_smtp-0.12.0.ez) must be downloaded separately).
 
 ## Documentation
 
