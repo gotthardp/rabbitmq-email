@@ -2,7 +2,7 @@ PROJECT = rabbitmq_email
 PROJECT_DESCRIPTION = RabbitMQ plugin that converts incoming emails into messages and messages into outgoing emails
 
 # use the patched gen_smtp from a fork
-dep_gen_smtp = git https://github.com/rabbitmq/gen_smtp.git master
+dep_gen_smtp = git https://github.com/gotthardp/gen_smtp.git master
 dep_eiconv = git https://github.com/zotonic/eiconv.git master
 
 BUILD_DEPS += gen_smtp
