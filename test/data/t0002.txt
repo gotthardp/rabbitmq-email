@@ -1,4 +1,0 @@
-From: doug@example.com
-To: schmuergen@example.com
-Subject: =?utf-8?B?Z29iYmxlZGlnb29r?=
-
