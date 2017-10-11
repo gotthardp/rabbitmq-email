@@ -12,6 +12,5 @@
 /rabbitmq_email.d
 
 erl_crash.dump
-test/data/samples.zip
-test/data/samples
+test/system_SUITE_data/samples*
 test/TEST-*.xml

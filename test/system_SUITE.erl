@@ -25,6 +25,7 @@ groups() ->
      {non_parallel_tests, [], [
                                email_header_test
                                , email_filtering_test
+                               , email_filtering_hunny_samples_test
                               ]}
     ].
 
@@ -73,6 +74,69 @@ email_filtering_test(Config) ->
      ?assert(filter_email(Config, "t0001.txt", {content_type, undefined}))
     ].
 
+email_filtering_hunny_samples_test(Config) ->
+    [
+     ?assert(filter_email(Config, "samples/messages/m0001.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m0002.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m0003.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m0004.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m0005.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m0006.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m0007.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m0008.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m0009.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m0010.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m0011.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m0012.txt", {content_type, <<"image/png">>})),
+     ?assert(filter_email(Config, "samples/messages/m0013.txt", {content_type, <<"image/png">>})),
+     ?assert(filter_email(Config, "samples/messages/m0014.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m0015.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m0016.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m0017.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m0018.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m1001.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m1002.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m1003.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m1004.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m1005.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m1006.txt", {content_type, <<"text/html">>})),
+     ?assert(filter_email(Config, "samples/messages/m1007.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m1008.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m1009.txt", {content_type, <<"text/plain">>})),
+     %% encoding mismatch
+     ?assertNot(filter_email(Config, "samples/messages/m1010.txt", error)),
+     ?assert(filter_email(Config, "samples/messages/m1011.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m1012.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m1013.txt", {content_type, <<"image/png">>})),
+     ?assert(filter_email(Config, "samples/messages/m1014.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m1015.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m1016.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m2001.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m2002.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m2003.txt", {content_type, <<"text/html">>})),
+     ?assert(filter_email(Config, "samples/messages/m2004.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m2005.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m2006.txt", {content_type, <<"text/html">>})),
+     ?assert(filter_email(Config, "samples/messages/m2007.txt", {content_type, <<"text/html">>})),
+     ?assert(filter_email(Config, "samples/messages/m2008.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m2009.txt", {content_type, <<"text/html">>})),
+     ?assert(filter_email(Config, "samples/messages/m2010.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m2011.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m2012.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m2013.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m2014.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m2015.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m2016.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m3001.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m3002.txt", {content_type, <<"text/plain">>})),
+     ?assert(filter_email(Config, "samples/messages/m3003.txt", {content_type, <<"application/octet-stream">>})),
+     ?assert(filter_email(Config, "samples/messages/m3004.txt", {content_type, <<"text/plain">>}))
+    ].
+
+%%
+%% Helpers
+%%
+
 filter_email(Config, Filename, Expect) ->
     Ch = rabbit_ct_client_helpers:open_channel(Config),
     amqp_channel:call(Ch, #'exchange.declare'{exchange = <<"email-in">>,
@@ -93,8 +157,10 @@ filter_email(Config, Filename, Expect) ->
             ct:pal("SMTP server response: ~p, will wait for a delivery...", [Answer]),
             wait_for_message(Ch, Queue, 500, Expect);
         {error, Reason} ->
+            ct:pal("SMTP server reported an error: ~p...", [Reason]),
             expect_error(Reason, Expect);
         {error, _, Reason} ->
+            ct:pal("SMTP server reported an error: ~p...", [Reason]),
             expect_error(Reason, Expect)
     end,
     rabbit_ct_client_helpers:close_channel(Ch),
@@ -139,7 +205,7 @@ expect(#'P_basic'{headers = Headers}, {Header, Expected}) ->
             false
     end;
 
-expect(Props, {error}) ->
+expect(Props, error) ->
     ct:pal("unexpected success, expected error, received ~w", [Props]),
     false.
 

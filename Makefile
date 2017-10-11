@@ -25,18 +25,22 @@ NO_AUTOPATCH += eiconv
 ERLANG_MK_REPO = https://github.com/rabbitmq/erlang.mk.git
 ERLANG_MK_COMMIT = rabbitmq-tmp
 
-include rabbitmq-components.mk
-include erlang.mk
-
 # --------------------------------------------------------------------
 # Testing.
 # --------------------------------------------------------------------
 
-samples: test/data/samples.zip tests
+test-build:: test/system_SUITE_data/samples.zip
 
-test/data/samples.zip:
-	wget http://www.hunnysoft.com/mime/samples/samples.zip -O $@
-	unzip $@ -d $(@D)
+test/system_SUITE_data/samples.zip:
+	$(gen_verbose) wget http://www.hunnysoft.com/mime/samples/samples.zip -O $@
+	$(gen_verbose) unzip $@ -d $(@D) || true
 
-WITH_BROKER_TEST_COMMANDS := \
-        eunit:test(rabbit_email_tests,[verbose,{report,{eunit_surefire,[{dir,\"test\"}]}}])
+.PHONY: delete-test/system_SUITE_data/samples.zip
+delete-test/system_SUITE_data/samples.zip:
+	$(gen_verbose) rm -rf system_SUITE_data/samples*
+
+distclean:: delete-test/system_SUITE_data/samples.zip
+	@:
+
+include rabbitmq-components.mk
+include erlang.mk
