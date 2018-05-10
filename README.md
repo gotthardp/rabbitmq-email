@@ -8,7 +8,7 @@ This plugin makes SMTP and AMQP 0-9-1 interoperate. It can
 Certain interoperability with other protocols, namely STOMP, can be achieved as well.
 
 This implementation aims to replace the [rabbitmq-smtp](https://github.com/rabbitmq/rabbitmq-smtp) plugin.
-It is based on a more advanced [gen_smtp] (https://github.com/Vagabond/gen_smtp)
+It is based on a more advanced [gen_smtp](https://github.com/Vagabond/gen_smtp)
 rather than on [erlang-smtp](https://github.com/tonyg/erlang-smtp).
 
 This plugin is moderately mature. The described functionality is fully implemented
