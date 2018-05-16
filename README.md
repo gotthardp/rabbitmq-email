@@ -176,9 +176,9 @@ All keys used by this plugin are under the `rabbitmq_email` section (app). Key s
 
  * `rabbitmq_email.server_config` defines SMTP server parameters (same as in `gen_smtp`)
  * `rabbitmq_email.email_domains` maps sender domains to RabbitMQ [virtual hosts and exchanges](http://www.rabbitmq.com/tutorials/amqp-concepts.html)
- * `rabbitmq_email.emal_queues` maps [virtual hosts and queues](http://www.rabbitmq.com/tutorials/amqp-concepts.html) to outgoing email domains
+ * `rabbitmq_email.email_queues` maps [virtual hosts and queues](http://www.rabbitmq.com/tutorials/amqp-concepts.html) to outgoing email domains
  * `rabbitmq_email.client_config` configures SMTP client settings for outgoing email
- * `rabbitmq_email.emal_from` and `rabbitmq_email.client_sender` configure the `FROM` header used in outgoing emails
+ * `rabbitmq_email.email_from` and `rabbitmq_email.client_sender` configure the `FROM` header used in outgoing emails
 
 For example:
 
