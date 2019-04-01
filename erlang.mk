@@ -17,7 +17,7 @@
 ERLANG_MK_FILENAME := $(realpath $(lastword $(MAKEFILE_LIST)))
 export ERLANG_MK_FILENAME
 
-ERLANG_MK_VERSION = 2.0.0-pre.2-278-gd9a9158
+ERLANG_MK_VERSION = 2.0.0-pre.2-311-gb20df2d
 ERLANG_MK_WITHOUT = plugins/proper
 
 # Make 3.81 and 3.82 are deprecated.
@@ -187,9 +187,11 @@ ERLANG_MK_BUILD_DIR ?= .erlang.mk.build
 
 erlang-mk: WITHOUT ?= $(ERLANG_MK_WITHOUT)
 erlang-mk:
-	git clone $(ERLANG_MK_REPO) $(ERLANG_MK_BUILD_DIR)
 ifdef ERLANG_MK_COMMIT
+	git clone $(ERLANG_MK_REPO) $(ERLANG_MK_BUILD_DIR)
 	cd $(ERLANG_MK_BUILD_DIR) && git checkout $(ERLANG_MK_COMMIT)
+else
+	git clone --depth 1 $(ERLANG_MK_REPO) $(ERLANG_MK_BUILD_DIR)
 endif
 	if [ -f $(ERLANG_MK_BUILD_CONFIG) ]; then cp $(ERLANG_MK_BUILD_CONFIG) $(ERLANG_MK_BUILD_DIR)/build.config; fi
 	$(MAKE) -C $(ERLANG_MK_BUILD_DIR) WITHOUT='$(strip $(WITHOUT))'
@@ -198,6 +200,87 @@ endif
 
 # The erlang.mk package index is bundled in the default erlang.mk build.
 # Search for the string "copyright" to skip to the rest of the code.
+
+# Copyright (c) 2015-2017, Loïc Hoguin <essen@ninenines.eu>
+# This file is part of erlang.mk and subject to the terms of the ISC License.
+
+.PHONY: distclean-kerl
+
+KERL_INSTALL_DIR ?= $(HOME)/erlang
+
+ifeq ($(strip $(KERL)),)
+KERL := $(ERLANG_MK_TMP)/kerl/kerl
+endif
+
+export KERL
+
+KERL_GIT ?= https://github.com/kerl/kerl
+KERL_COMMIT ?= master
+
+KERL_MAKEFLAGS ?=
+
+OTP_GIT ?= https://github.com/erlang/otp
+
+define kerl_otp_target
+ifeq ($(wildcard $(KERL_INSTALL_DIR)/$(1)),)
+$(KERL_INSTALL_DIR)/$(1): $(KERL)
+	MAKEFLAGS="$(KERL_MAKEFLAGS)" $(KERL) build git $(OTP_GIT) $(1) $(1)
+	$(KERL) install $(1) $(KERL_INSTALL_DIR)/$(1)
+endif
+endef
+
+define kerl_hipe_target
+ifeq ($(wildcard $(KERL_INSTALL_DIR)/$1-native),)
+$(KERL_INSTALL_DIR)/$1-native: $(KERL)
+	KERL_CONFIGURE_OPTIONS=--enable-native-libs \
+		MAKEFLAGS="$(KERL_MAKEFLAGS)" $(KERL) build git $(OTP_GIT) $1 $1-native
+	$(KERL) install $1-native $(KERL_INSTALL_DIR)/$1-native
+endif
+endef
+
+$(KERL):
+	$(verbose) mkdir -p $(ERLANG_MK_TMP)
+	$(gen_verbose) git clone --depth 1 $(KERL_GIT) $(ERLANG_MK_TMP)/kerl
+	$(verbose) cd $(ERLANG_MK_TMP)/kerl && git checkout $(KERL_COMMIT)
+	$(verbose) chmod +x $(KERL)
+
+distclean:: distclean-kerl
+
+distclean-kerl:
+	$(gen_verbose) rm -rf $(KERL)
+
+# Allow users to select which version of Erlang/OTP to use for a project.
+
+ERLANG_OTP ?=
+ERLANG_HIPE ?=
+
+# Use kerl to enforce a specific Erlang/OTP version for a project.
+ifneq ($(strip $(ERLANG_OTP)),)
+export PATH := $(KERL_INSTALL_DIR)/$(ERLANG_OTP)/bin:$(PATH)
+SHELL := env PATH=$(PATH) $(SHELL)
+$(eval $(call kerl_otp_target,$(ERLANG_OTP)))
+
+# Build Erlang/OTP only if it doesn't already exist.
+ifeq ($(wildcard $(KERL_INSTALL_DIR)/$(ERLANG_OTP))$(BUILD_ERLANG_OTP),)
+$(info Building Erlang/OTP $(ERLANG_OTP)... Please wait...)
+$(shell $(MAKE) $(KERL_INSTALL_DIR)/$(ERLANG_OTP) ERLANG_OTP=$(ERLANG_OTP) BUILD_ERLANG_OTP=1 >&2)
+endif
+
+else
+# Same for a HiPE enabled VM.
+ifneq ($(strip $(ERLANG_HIPE)),)
+export PATH := $(KERL_INSTALL_DIR)/$(ERLANG_HIPE)-native/bin:$(PATH)
+SHELL := env PATH=$(PATH) $(SHELL)
+$(eval $(call kerl_hipe_target,$(ERLANG_HIPE)))
+
+# Build Erlang/OTP only if it doesn't already exist.
+ifeq ($(wildcard $(KERL_INSTALL_DIR)/$(ERLANG_HIPE))$(BUILD_ERLANG_OTP),)
+$(info Building HiPE-enabled Erlang/OTP $(ERLANG_OTP)... Please wait...)
+$(shell $(MAKE) $(KERL_INSTALL_DIR)/$(ERLANG_HIPE) ERLANG_HIPE=$(ERLANG_HIPE) BUILD_ERLANG_OTP=1 >&2)
+endif
+
+endif
+endif
 
 PACKAGES += aberth
 pkg_aberth_name = aberth
@@ -218,7 +301,7 @@ pkg_active_commit = master
 PACKAGES += actordb_core
 pkg_actordb_core_name = actordb_core
 pkg_actordb_core_description = ActorDB main source
-pkg_actordb_core_homepage = http://www.actordb.com/
+pkg_actordb_core_homepage = https://www.actordb.com/
 pkg_actordb_core_fetch = git
 pkg_actordb_core_repo = https://github.com/biokoda/actordb_core
 pkg_actordb_core_commit = master
@@ -226,7 +309,7 @@ pkg_actordb_core_commit = master
 PACKAGES += actordb_thrift
 pkg_actordb_thrift_name = actordb_thrift
 pkg_actordb_thrift_description = Thrift API for ActorDB
-pkg_actordb_thrift_homepage = http://www.actordb.com/
+pkg_actordb_thrift_homepage = https://www.actordb.com/
 pkg_actordb_thrift_fetch = git
 pkg_actordb_thrift_repo = https://github.com/biokoda/actordb_thrift
 pkg_actordb_thrift_commit = master
@@ -274,7 +357,7 @@ pkg_antidote_commit = master
 PACKAGES += apns
 pkg_apns_name = apns
 pkg_apns_description = Apple Push Notification Server for Erlang
-pkg_apns_homepage = http://inaka.github.com/apns4erl
+pkg_apns_homepage = https://inaka.github.com/apns4erl
 pkg_apns_fetch = git
 pkg_apns_repo = https://github.com/inaka/apns4erl
 pkg_apns_commit = master
@@ -442,7 +525,7 @@ pkg_bson_commit = master
 PACKAGES += bullet
 pkg_bullet_name = bullet
 pkg_bullet_description = Simple, reliable, efficient streaming for Cowboy.
-pkg_bullet_homepage = http://ninenines.eu
+pkg_bullet_homepage = https://ninenines.eu
 pkg_bullet_fetch = git
 pkg_bullet_repo = https://github.com/ninenines/bullet
 pkg_bullet_commit = master
@@ -535,14 +618,6 @@ pkg_cl_fetch = git
 pkg_cl_repo = https://github.com/tonyrog/cl
 pkg_cl_commit = master
 
-PACKAGES += classifier
-pkg_classifier_name = classifier
-pkg_classifier_description = An Erlang Bayesian Filter and Text Classifier
-pkg_classifier_homepage = https://github.com/inaka/classifier
-pkg_classifier_fetch = git
-pkg_classifier_repo = https://github.com/inaka/classifier
-pkg_classifier_commit = master
-
 PACKAGES += clique
 pkg_clique_name = clique
 pkg_clique_description = CLI Framework for Erlang
@@ -554,7 +629,7 @@ pkg_clique_commit = develop
 PACKAGES += cloudi_core
 pkg_cloudi_core_name = cloudi_core
 pkg_cloudi_core_description = CloudI internal service runtime
-pkg_cloudi_core_homepage = http://cloudi.org/
+pkg_cloudi_core_homepage = https://cloudi.org/
 pkg_cloudi_core_fetch = git
 pkg_cloudi_core_repo = https://github.com/CloudI/cloudi_core
 pkg_cloudi_core_commit = master
@@ -562,7 +637,7 @@ pkg_cloudi_core_commit = master
 PACKAGES += cloudi_service_api_requests
 pkg_cloudi_service_api_requests_name = cloudi_service_api_requests
 pkg_cloudi_service_api_requests_description = CloudI Service API requests (JSON-RPC/Erlang-term support)
-pkg_cloudi_service_api_requests_homepage = http://cloudi.org/
+pkg_cloudi_service_api_requests_homepage = https://cloudi.org/
 pkg_cloudi_service_api_requests_fetch = git
 pkg_cloudi_service_api_requests_repo = https://github.com/CloudI/cloudi_service_api_requests
 pkg_cloudi_service_api_requests_commit = master
@@ -570,7 +645,7 @@ pkg_cloudi_service_api_requests_commit = master
 PACKAGES += cloudi_service_db
 pkg_cloudi_service_db_name = cloudi_service_db
 pkg_cloudi_service_db_description = CloudI Database (in-memory/testing/generic)
-pkg_cloudi_service_db_homepage = http://cloudi.org/
+pkg_cloudi_service_db_homepage = https://cloudi.org/
 pkg_cloudi_service_db_fetch = git
 pkg_cloudi_service_db_repo = https://github.com/CloudI/cloudi_service_db
 pkg_cloudi_service_db_commit = master
@@ -578,7 +653,7 @@ pkg_cloudi_service_db_commit = master
 PACKAGES += cloudi_service_db_cassandra
 pkg_cloudi_service_db_cassandra_name = cloudi_service_db_cassandra
 pkg_cloudi_service_db_cassandra_description = Cassandra CloudI Service
-pkg_cloudi_service_db_cassandra_homepage = http://cloudi.org/
+pkg_cloudi_service_db_cassandra_homepage = https://cloudi.org/
 pkg_cloudi_service_db_cassandra_fetch = git
 pkg_cloudi_service_db_cassandra_repo = https://github.com/CloudI/cloudi_service_db_cassandra
 pkg_cloudi_service_db_cassandra_commit = master
@@ -586,7 +661,7 @@ pkg_cloudi_service_db_cassandra_commit = master
 PACKAGES += cloudi_service_db_cassandra_cql
 pkg_cloudi_service_db_cassandra_cql_name = cloudi_service_db_cassandra_cql
 pkg_cloudi_service_db_cassandra_cql_description = Cassandra CQL CloudI Service
-pkg_cloudi_service_db_cassandra_cql_homepage = http://cloudi.org/
+pkg_cloudi_service_db_cassandra_cql_homepage = https://cloudi.org/
 pkg_cloudi_service_db_cassandra_cql_fetch = git
 pkg_cloudi_service_db_cassandra_cql_repo = https://github.com/CloudI/cloudi_service_db_cassandra_cql
 pkg_cloudi_service_db_cassandra_cql_commit = master
@@ -594,7 +669,7 @@ pkg_cloudi_service_db_cassandra_cql_commit = master
 PACKAGES += cloudi_service_db_couchdb
 pkg_cloudi_service_db_couchdb_name = cloudi_service_db_couchdb
 pkg_cloudi_service_db_couchdb_description = CouchDB CloudI Service
-pkg_cloudi_service_db_couchdb_homepage = http://cloudi.org/
+pkg_cloudi_service_db_couchdb_homepage = https://cloudi.org/
 pkg_cloudi_service_db_couchdb_fetch = git
 pkg_cloudi_service_db_couchdb_repo = https://github.com/CloudI/cloudi_service_db_couchdb
 pkg_cloudi_service_db_couchdb_commit = master
@@ -602,7 +677,7 @@ pkg_cloudi_service_db_couchdb_commit = master
 PACKAGES += cloudi_service_db_elasticsearch
 pkg_cloudi_service_db_elasticsearch_name = cloudi_service_db_elasticsearch
 pkg_cloudi_service_db_elasticsearch_description = elasticsearch CloudI Service
-pkg_cloudi_service_db_elasticsearch_homepage = http://cloudi.org/
+pkg_cloudi_service_db_elasticsearch_homepage = https://cloudi.org/
 pkg_cloudi_service_db_elasticsearch_fetch = git
 pkg_cloudi_service_db_elasticsearch_repo = https://github.com/CloudI/cloudi_service_db_elasticsearch
 pkg_cloudi_service_db_elasticsearch_commit = master
@@ -610,7 +685,7 @@ pkg_cloudi_service_db_elasticsearch_commit = master
 PACKAGES += cloudi_service_db_memcached
 pkg_cloudi_service_db_memcached_name = cloudi_service_db_memcached
 pkg_cloudi_service_db_memcached_description = memcached CloudI Service
-pkg_cloudi_service_db_memcached_homepage = http://cloudi.org/
+pkg_cloudi_service_db_memcached_homepage = https://cloudi.org/
 pkg_cloudi_service_db_memcached_fetch = git
 pkg_cloudi_service_db_memcached_repo = https://github.com/CloudI/cloudi_service_db_memcached
 pkg_cloudi_service_db_memcached_commit = master
@@ -618,7 +693,7 @@ pkg_cloudi_service_db_memcached_commit = master
 PACKAGES += cloudi_service_db_mysql
 pkg_cloudi_service_db_mysql_name = cloudi_service_db_mysql
 pkg_cloudi_service_db_mysql_description = MySQL CloudI Service
-pkg_cloudi_service_db_mysql_homepage = http://cloudi.org/
+pkg_cloudi_service_db_mysql_homepage = https://cloudi.org/
 pkg_cloudi_service_db_mysql_fetch = git
 pkg_cloudi_service_db_mysql_repo = https://github.com/CloudI/cloudi_service_db_mysql
 pkg_cloudi_service_db_mysql_commit = master
@@ -626,7 +701,7 @@ pkg_cloudi_service_db_mysql_commit = master
 PACKAGES += cloudi_service_db_pgsql
 pkg_cloudi_service_db_pgsql_name = cloudi_service_db_pgsql
 pkg_cloudi_service_db_pgsql_description = PostgreSQL CloudI Service
-pkg_cloudi_service_db_pgsql_homepage = http://cloudi.org/
+pkg_cloudi_service_db_pgsql_homepage = https://cloudi.org/
 pkg_cloudi_service_db_pgsql_fetch = git
 pkg_cloudi_service_db_pgsql_repo = https://github.com/CloudI/cloudi_service_db_pgsql
 pkg_cloudi_service_db_pgsql_commit = master
@@ -634,7 +709,7 @@ pkg_cloudi_service_db_pgsql_commit = master
 PACKAGES += cloudi_service_db_riak
 pkg_cloudi_service_db_riak_name = cloudi_service_db_riak
 pkg_cloudi_service_db_riak_description = Riak CloudI Service
-pkg_cloudi_service_db_riak_homepage = http://cloudi.org/
+pkg_cloudi_service_db_riak_homepage = https://cloudi.org/
 pkg_cloudi_service_db_riak_fetch = git
 pkg_cloudi_service_db_riak_repo = https://github.com/CloudI/cloudi_service_db_riak
 pkg_cloudi_service_db_riak_commit = master
@@ -642,7 +717,7 @@ pkg_cloudi_service_db_riak_commit = master
 PACKAGES += cloudi_service_db_tokyotyrant
 pkg_cloudi_service_db_tokyotyrant_name = cloudi_service_db_tokyotyrant
 pkg_cloudi_service_db_tokyotyrant_description = Tokyo Tyrant CloudI Service
-pkg_cloudi_service_db_tokyotyrant_homepage = http://cloudi.org/
+pkg_cloudi_service_db_tokyotyrant_homepage = https://cloudi.org/
 pkg_cloudi_service_db_tokyotyrant_fetch = git
 pkg_cloudi_service_db_tokyotyrant_repo = https://github.com/CloudI/cloudi_service_db_tokyotyrant
 pkg_cloudi_service_db_tokyotyrant_commit = master
@@ -650,7 +725,7 @@ pkg_cloudi_service_db_tokyotyrant_commit = master
 PACKAGES += cloudi_service_filesystem
 pkg_cloudi_service_filesystem_name = cloudi_service_filesystem
 pkg_cloudi_service_filesystem_description = Filesystem CloudI Service
-pkg_cloudi_service_filesystem_homepage = http://cloudi.org/
+pkg_cloudi_service_filesystem_homepage = https://cloudi.org/
 pkg_cloudi_service_filesystem_fetch = git
 pkg_cloudi_service_filesystem_repo = https://github.com/CloudI/cloudi_service_filesystem
 pkg_cloudi_service_filesystem_commit = master
@@ -658,7 +733,7 @@ pkg_cloudi_service_filesystem_commit = master
 PACKAGES += cloudi_service_http_client
 pkg_cloudi_service_http_client_name = cloudi_service_http_client
 pkg_cloudi_service_http_client_description = HTTP client CloudI Service
-pkg_cloudi_service_http_client_homepage = http://cloudi.org/
+pkg_cloudi_service_http_client_homepage = https://cloudi.org/
 pkg_cloudi_service_http_client_fetch = git
 pkg_cloudi_service_http_client_repo = https://github.com/CloudI/cloudi_service_http_client
 pkg_cloudi_service_http_client_commit = master
@@ -666,7 +741,7 @@ pkg_cloudi_service_http_client_commit = master
 PACKAGES += cloudi_service_http_cowboy
 pkg_cloudi_service_http_cowboy_name = cloudi_service_http_cowboy
 pkg_cloudi_service_http_cowboy_description = cowboy HTTP/HTTPS CloudI Service
-pkg_cloudi_service_http_cowboy_homepage = http://cloudi.org/
+pkg_cloudi_service_http_cowboy_homepage = https://cloudi.org/
 pkg_cloudi_service_http_cowboy_fetch = git
 pkg_cloudi_service_http_cowboy_repo = https://github.com/CloudI/cloudi_service_http_cowboy
 pkg_cloudi_service_http_cowboy_commit = master
@@ -674,7 +749,7 @@ pkg_cloudi_service_http_cowboy_commit = master
 PACKAGES += cloudi_service_http_elli
 pkg_cloudi_service_http_elli_name = cloudi_service_http_elli
 pkg_cloudi_service_http_elli_description = elli HTTP CloudI Service
-pkg_cloudi_service_http_elli_homepage = http://cloudi.org/
+pkg_cloudi_service_http_elli_homepage = https://cloudi.org/
 pkg_cloudi_service_http_elli_fetch = git
 pkg_cloudi_service_http_elli_repo = https://github.com/CloudI/cloudi_service_http_elli
 pkg_cloudi_service_http_elli_commit = master
@@ -682,7 +757,7 @@ pkg_cloudi_service_http_elli_commit = master
 PACKAGES += cloudi_service_map_reduce
 pkg_cloudi_service_map_reduce_name = cloudi_service_map_reduce
 pkg_cloudi_service_map_reduce_description = Map/Reduce CloudI Service
-pkg_cloudi_service_map_reduce_homepage = http://cloudi.org/
+pkg_cloudi_service_map_reduce_homepage = https://cloudi.org/
 pkg_cloudi_service_map_reduce_fetch = git
 pkg_cloudi_service_map_reduce_repo = https://github.com/CloudI/cloudi_service_map_reduce
 pkg_cloudi_service_map_reduce_commit = master
@@ -690,7 +765,7 @@ pkg_cloudi_service_map_reduce_commit = master
 PACKAGES += cloudi_service_oauth1
 pkg_cloudi_service_oauth1_name = cloudi_service_oauth1
 pkg_cloudi_service_oauth1_description = OAuth v1.0 CloudI Service
-pkg_cloudi_service_oauth1_homepage = http://cloudi.org/
+pkg_cloudi_service_oauth1_homepage = https://cloudi.org/
 pkg_cloudi_service_oauth1_fetch = git
 pkg_cloudi_service_oauth1_repo = https://github.com/CloudI/cloudi_service_oauth1
 pkg_cloudi_service_oauth1_commit = master
@@ -698,7 +773,7 @@ pkg_cloudi_service_oauth1_commit = master
 PACKAGES += cloudi_service_queue
 pkg_cloudi_service_queue_name = cloudi_service_queue
 pkg_cloudi_service_queue_description = Persistent Queue Service
-pkg_cloudi_service_queue_homepage = http://cloudi.org/
+pkg_cloudi_service_queue_homepage = https://cloudi.org/
 pkg_cloudi_service_queue_fetch = git
 pkg_cloudi_service_queue_repo = https://github.com/CloudI/cloudi_service_queue
 pkg_cloudi_service_queue_commit = master
@@ -706,7 +781,7 @@ pkg_cloudi_service_queue_commit = master
 PACKAGES += cloudi_service_quorum
 pkg_cloudi_service_quorum_name = cloudi_service_quorum
 pkg_cloudi_service_quorum_description = CloudI Quorum Service
-pkg_cloudi_service_quorum_homepage = http://cloudi.org/
+pkg_cloudi_service_quorum_homepage = https://cloudi.org/
 pkg_cloudi_service_quorum_fetch = git
 pkg_cloudi_service_quorum_repo = https://github.com/CloudI/cloudi_service_quorum
 pkg_cloudi_service_quorum_commit = master
@@ -714,7 +789,7 @@ pkg_cloudi_service_quorum_commit = master
 PACKAGES += cloudi_service_router
 pkg_cloudi_service_router_name = cloudi_service_router
 pkg_cloudi_service_router_description = CloudI Router Service
-pkg_cloudi_service_router_homepage = http://cloudi.org/
+pkg_cloudi_service_router_homepage = https://cloudi.org/
 pkg_cloudi_service_router_fetch = git
 pkg_cloudi_service_router_repo = https://github.com/CloudI/cloudi_service_router
 pkg_cloudi_service_router_commit = master
@@ -722,7 +797,7 @@ pkg_cloudi_service_router_commit = master
 PACKAGES += cloudi_service_tcp
 pkg_cloudi_service_tcp_name = cloudi_service_tcp
 pkg_cloudi_service_tcp_description = TCP CloudI Service
-pkg_cloudi_service_tcp_homepage = http://cloudi.org/
+pkg_cloudi_service_tcp_homepage = https://cloudi.org/
 pkg_cloudi_service_tcp_fetch = git
 pkg_cloudi_service_tcp_repo = https://github.com/CloudI/cloudi_service_tcp
 pkg_cloudi_service_tcp_commit = master
@@ -730,7 +805,7 @@ pkg_cloudi_service_tcp_commit = master
 PACKAGES += cloudi_service_timers
 pkg_cloudi_service_timers_name = cloudi_service_timers
 pkg_cloudi_service_timers_description = Timers CloudI Service
-pkg_cloudi_service_timers_homepage = http://cloudi.org/
+pkg_cloudi_service_timers_homepage = https://cloudi.org/
 pkg_cloudi_service_timers_fetch = git
 pkg_cloudi_service_timers_repo = https://github.com/CloudI/cloudi_service_timers
 pkg_cloudi_service_timers_commit = master
@@ -738,7 +813,7 @@ pkg_cloudi_service_timers_commit = master
 PACKAGES += cloudi_service_udp
 pkg_cloudi_service_udp_name = cloudi_service_udp
 pkg_cloudi_service_udp_description = UDP CloudI Service
-pkg_cloudi_service_udp_homepage = http://cloudi.org/
+pkg_cloudi_service_udp_homepage = https://cloudi.org/
 pkg_cloudi_service_udp_fetch = git
 pkg_cloudi_service_udp_repo = https://github.com/CloudI/cloudi_service_udp
 pkg_cloudi_service_udp_commit = master
@@ -746,7 +821,7 @@ pkg_cloudi_service_udp_commit = master
 PACKAGES += cloudi_service_validate
 pkg_cloudi_service_validate_name = cloudi_service_validate
 pkg_cloudi_service_validate_description = CloudI Validate Service
-pkg_cloudi_service_validate_homepage = http://cloudi.org/
+pkg_cloudi_service_validate_homepage = https://cloudi.org/
 pkg_cloudi_service_validate_fetch = git
 pkg_cloudi_service_validate_repo = https://github.com/CloudI/cloudi_service_validate
 pkg_cloudi_service_validate_commit = master
@@ -754,7 +829,7 @@ pkg_cloudi_service_validate_commit = master
 PACKAGES += cloudi_service_zeromq
 pkg_cloudi_service_zeromq_name = cloudi_service_zeromq
 pkg_cloudi_service_zeromq_description = ZeroMQ CloudI Service
-pkg_cloudi_service_zeromq_homepage = http://cloudi.org/
+pkg_cloudi_service_zeromq_homepage = https://cloudi.org/
 pkg_cloudi_service_zeromq_fetch = git
 pkg_cloudi_service_zeromq_repo = https://github.com/CloudI/cloudi_service_zeromq
 pkg_cloudi_service_zeromq_commit = master
@@ -802,7 +877,7 @@ pkg_covertool_commit = master
 PACKAGES += cowboy
 pkg_cowboy_name = cowboy
 pkg_cowboy_description = Small, fast and modular HTTP server.
-pkg_cowboy_homepage = http://ninenines.eu
+pkg_cowboy_homepage = https://ninenines.eu
 pkg_cowboy_fetch = git
 pkg_cowboy_repo = https://github.com/ninenines/cowboy
 pkg_cowboy_commit = 1.0.4
@@ -818,7 +893,7 @@ pkg_cowdb_commit = master
 PACKAGES += cowlib
 pkg_cowlib_name = cowlib
 pkg_cowlib_description = Support library for manipulating Web protocols.
-pkg_cowlib_homepage = http://ninenines.eu
+pkg_cowlib_homepage = https://ninenines.eu
 pkg_cowlib_fetch = git
 pkg_cowlib_repo = https://github.com/ninenines/cowlib
 pkg_cowlib_commit = 1.0.2
@@ -943,14 +1018,6 @@ pkg_dnssd_fetch = git
 pkg_dnssd_repo = https://github.com/benoitc/dnssd_erlang
 pkg_dnssd_commit = master
 
-PACKAGES += dtl
-pkg_dtl_name = dtl
-pkg_dtl_description = Django Template Language: A full-featured port of the Django template engine to Erlang.
-pkg_dtl_homepage = https://github.com/oinksoft/dtl
-pkg_dtl_fetch = git
-pkg_dtl_repo = https://github.com/oinksoft/dtl
-pkg_dtl_commit = master
-
 PACKAGES += dynamic_compile
 pkg_dynamic_compile_name = dynamic_compile
 pkg_dynamic_compile_description = compile and load erlang modules from string input
@@ -1018,7 +1085,7 @@ pkg_edgar_commit = master
 PACKAGES += edis
 pkg_edis_name = edis
 pkg_edis_description = An Erlang implementation of Redis KV Store
-pkg_edis_homepage = http://inaka.github.com/edis/
+pkg_edis_homepage = https://inaka.github.com/edis/
 pkg_edis_fetch = git
 pkg_edis_repo = https://github.com/inaka/edis
 pkg_edis_commit = master
@@ -1273,7 +1340,7 @@ pkg_erlang_cep_commit = master
 
 PACKAGES += erlang_js
 pkg_erlang_js_name = erlang_js
-pkg_erlang_js_description = A linked-in driver for Erlang to Mozilla's Spidermonkey Javascript runtime.
+pkg_erlang_js_description = A linked-in driver for Erlang to Mozilla's Spidermonkey JavaScript runtime.
 pkg_erlang_js_homepage = https://github.com/basho/erlang_js
 pkg_erlang_js_fetch = git
 pkg_erlang_js_repo = https://github.com/basho/erlang_js
@@ -1346,7 +1413,7 @@ pkg_erlcron_commit = master
 PACKAGES += erldb
 pkg_erldb_name = erldb
 pkg_erldb_description = ORM (Object-relational mapping) application implemented in Erlang
-pkg_erldb_homepage = http://erldb.org
+pkg_erldb_homepage = https://erldb.org
 pkg_erldb_fetch = git
 pkg_erldb_repo = https://github.com/erldb/erldb
 pkg_erldb_commit = master
@@ -1519,6 +1586,14 @@ pkg_erwa_fetch = git
 pkg_erwa_repo = https://github.com/bwegh/erwa
 pkg_erwa_commit = master
 
+PACKAGES += escalus
+pkg_escalus_name = escalus
+pkg_escalus_description = An XMPP client library in Erlang for conveniently testing XMPP servers
+pkg_escalus_homepage = https://github.com/esl/escalus
+pkg_escalus_fetch = git
+pkg_escalus_repo = https://github.com/esl/escalus
+pkg_escalus_commit = master
+
 PACKAGES += espec
 pkg_espec_name = espec
 pkg_espec_description = ESpec: Behaviour driven development framework for Erlang
@@ -1602,7 +1677,7 @@ pkg_evum_commit = master
 PACKAGES += exec
 pkg_exec_name = erlexec
 pkg_exec_description = Execute and control OS processes from Erlang/OTP.
-pkg_exec_homepage = http://saleyn.github.com/erlexec
+pkg_exec_homepage = https://saleyn.github.com/erlexec
 pkg_exec_fetch = git
 pkg_exec_repo = https://github.com/saleyn/erlexec
 pkg_exec_commit = master
@@ -1697,7 +1772,7 @@ pkg_find_crate_commit = master
 
 PACKAGES += fix
 pkg_fix_name = fix
-pkg_fix_description = http://fixprotocol.org/ implementation.
+pkg_fix_description = https://fixtrading.org implementation.
 pkg_fix_homepage = https://github.com/maxlapshin/fix
 pkg_fix_fetch = git
 pkg_fix_repo = https://github.com/maxlapshin/fix
@@ -1911,14 +1986,6 @@ pkg_gold_fever_fetch = git
 pkg_gold_fever_repo = https://github.com/inaka/gold_fever
 pkg_gold_fever_commit = master
 
-PACKAGES += gossiperl
-pkg_gossiperl_name = gossiperl
-pkg_gossiperl_description = Gossip middleware in Erlang
-pkg_gossiperl_homepage = http://gossiperl.com/
-pkg_gossiperl_fetch = git
-pkg_gossiperl_repo = https://github.com/gossiperl/gossiperl
-pkg_gossiperl_commit = master
-
 PACKAGES += gpb
 pkg_gpb_name = gpb
 pkg_gpb_description = A Google Protobuf implementation for Erlang
@@ -1942,6 +2009,22 @@ pkg_grapherl_homepage = https://github.com/eproxus/grapherl
 pkg_grapherl_fetch = git
 pkg_grapherl_repo = https://github.com/eproxus/grapherl
 pkg_grapherl_commit = master
+
+PACKAGES += grpc
+pkg_grpc_name = grpc
+pkg_grpc_description = gRPC server in Erlang
+pkg_grpc_homepage = https://github.com/Bluehouse-Technology/grpc
+pkg_grpc_fetch = git
+pkg_grpc_repo = https://github.com/Bluehouse-Technology/grpc
+pkg_grpc_commit = master
+
+PACKAGES += grpc_client
+pkg_grpc_client_name = grpc_client
+pkg_grpc_client_description = gRPC client in Erlang
+pkg_grpc_client_homepage = https://github.com/Bluehouse-Technology/grpc_client
+pkg_grpc_client_fetch = git
+pkg_grpc_client_repo = https://github.com/Bluehouse-Technology/grpc_client
+pkg_grpc_client_commit = master
 
 PACKAGES += gun
 pkg_gun_name = gun
@@ -2338,7 +2421,7 @@ pkg_lambdapad_commit = master
 PACKAGES += lasp
 pkg_lasp_name = lasp
 pkg_lasp_description = A Language for Distributed, Eventually Consistent Computations
-pkg_lasp_homepage = http://lasp-lang.org/
+pkg_lasp_homepage = https://lasp-lang.org/
 pkg_lasp_fetch = git
 pkg_lasp_repo = https://github.com/lasp-lang/lasp
 pkg_lasp_commit = master
@@ -2386,7 +2469,7 @@ pkg_ling_commit = master
 PACKAGES += live
 pkg_live_name = live
 pkg_live_description = Automated module and configuration reloader.
-pkg_live_homepage = http://ninenines.eu
+pkg_live_homepage = https://ninenines.eu
 pkg_live_fetch = git
 pkg_live_repo = https://github.com/ninenines/live
 pkg_live_commit = master
@@ -2799,6 +2882,14 @@ pkg_oauth2_fetch = git
 pkg_oauth2_repo = https://github.com/kivra/oauth2
 pkg_oauth2_commit = master
 
+PACKAGES += observer_cli
+pkg_observer_cli_name = observer_cli
+pkg_observer_cli_description = Visualize Erlang/Elixir Nodes On The Command Line
+pkg_observer_cli_homepage = https://zhongwencool.github.io/observer_cli
+pkg_observer_cli_fetch = git
+pkg_observer_cli_repo = https://github.com/zhongwencool/observer_cli
+pkg_observer_cli_commit = master
+
 PACKAGES += octopus
 pkg_octopus_name = octopus
 pkg_octopus_description = Small and flexible pool manager written in Erlang
@@ -3114,7 +3205,7 @@ pkg_rafter_commit = master
 PACKAGES += ranch
 pkg_ranch_name = ranch
 pkg_ranch_description = Socket acceptor pool for TCP protocols.
-pkg_ranch_homepage = http://ninenines.eu
+pkg_ranch_homepage = https://ninenines.eu
 pkg_ranch_fetch = git
 pkg_ranch_repo = https://github.com/ninenines/ranch
 pkg_ranch_commit = 1.2.1
@@ -3130,7 +3221,7 @@ pkg_rbeacon_commit = master
 PACKAGES += rebar
 pkg_rebar_name = rebar
 pkg_rebar_description = Erlang build tool that makes it easy to compile and test Erlang applications, port drivers and releases.
-pkg_rebar_homepage = http://www.rebar3.org
+pkg_rebar_homepage = https://www.rebar3.org
 pkg_rebar_fetch = git
 pkg_rebar_repo = https://github.com/rebar/rebar3
 pkg_rebar_commit = master
@@ -3210,7 +3301,7 @@ pkg_relx_commit = master
 PACKAGES += resource_discovery
 pkg_resource_discovery_name = resource_discovery
 pkg_resource_discovery_description = An application used to dynamically discover resources present in an Erlang node cluster.
-pkg_resource_discovery_homepage = http://erlware.org/
+pkg_resource_discovery_homepage = https://erlware.org/
 pkg_resource_discovery_fetch = git
 pkg_resource_discovery_repo = https://github.com/erlware/resource_discovery
 pkg_resource_discovery_commit = master
@@ -3378,7 +3469,7 @@ pkg_seestar_commit = master
 PACKAGES += service
 pkg_service_name = service
 pkg_service_description = A minimal Erlang behavior for creating CloudI internal services
-pkg_service_homepage = http://cloudi.org/
+pkg_service_homepage = https://cloudi.org/
 pkg_service_fetch = git
 pkg_service_repo = https://github.com/CloudI/service
 pkg_service_commit = master
@@ -3418,7 +3509,7 @@ pkg_sgte_commit = master
 PACKAGES += sheriff
 pkg_sheriff_name = sheriff
 pkg_sheriff_description = Parse transform for type based validation.
-pkg_sheriff_homepage = http://ninenines.eu
+pkg_sheriff_homepage = https://ninenines.eu
 pkg_sheriff_fetch = git
 pkg_sheriff_repo = https://github.com/extend/sheriff
 pkg_sheriff_commit = master
@@ -3615,6 +3706,14 @@ pkg_stripe_fetch = git
 pkg_stripe_repo = https://github.com/mattsta/stripe-erlang
 pkg_stripe_commit = v1
 
+PACKAGES += subproc
+pkg_subproc_name = subproc
+pkg_subproc_description = unix subprocess manager with {active,once|false} modes
+pkg_subproc_homepage = http://dozzie.jarowit.net/trac/wiki/subproc
+pkg_subproc_fetch = git
+pkg_subproc_repo = https://github.com/dozzie/subproc
+pkg_subproc_commit = v0.1.0
+
 PACKAGES += supervisor3
 pkg_supervisor3_name = supervisor3
 pkg_supervisor3_description = OTP supervisor with additional strategies
@@ -3762,7 +3861,7 @@ pkg_traffic_tools_commit = master
 PACKAGES += trails
 pkg_trails_name = trails
 pkg_trails_description = A couple of improvements over Cowboy Routes
-pkg_trails_homepage = http://inaka.github.io/cowboy-trails/
+pkg_trails_homepage = https://inaka.github.io/cowboy-trails/
 pkg_trails_fetch = git
 pkg_trails_repo = https://github.com/inaka/cowboy-trails
 pkg_trails_commit = master
@@ -3978,7 +4077,7 @@ pkg_worker_pool_commit = master
 PACKAGES += wrangler
 pkg_wrangler_name = wrangler
 pkg_wrangler_description = Import of the Wrangler svn repository.
-pkg_wrangler_homepage = http://www.cs.kent.ac.uk/projects/wrangler/Home.html
+pkg_wrangler_homepage = https://www.cs.kent.ac.uk/projects/wrangler/Home.html
 pkg_wrangler_fetch = git
 pkg_wrangler_repo = https://github.com/RefactoringTools/wrangler
 pkg_wrangler_commit = master
@@ -4033,7 +4132,7 @@ pkg_yaws_commit = master
 
 PACKAGES += zab_engine
 pkg_zab_engine_name = zab_engine
-pkg_zab_engine_description = zab propotocol implement by erlang
+pkg_zab_engine_description = zab protocol implement by erlang
 pkg_zab_engine_homepage = https://github.com/xinmingyao/zab_engine
 pkg_zab_engine_fetch = git
 pkg_zab_engine_repo = https://github.com/xinmingyao/zab_engine
@@ -4357,6 +4456,10 @@ define dep_autopatch_rebar.erl
 	Write("C_SRC_TYPE = rebar\n"),
 	Write("DRV_CFLAGS = -fPIC\nexport DRV_CFLAGS\n"),
 	Write(["ERLANG_ARCH = ", rebar_utils:wordsize(), "\nexport ERLANG_ARCH\n"]),
+	ToList = fun
+		(V) when is_atom(V) -> atom_to_list(V);
+		(V) when is_list(V) -> "'\\"" ++ V ++ "\\"'"
+	end,
 	fun() ->
 		Write("ERLC_OPTS = +debug_info\nexport ERLC_OPTS\n"),
 		case lists:keyfind(erl_opts, 1, Conf) of
@@ -4364,28 +4467,50 @@ define dep_autopatch_rebar.erl
 			{_, ErlOpts} ->
 				lists:foreach(fun
 					({d, D}) ->
-						Write("ERLC_OPTS += -D" ++ atom_to_list(D) ++ "=1\n");
+						Write("ERLC_OPTS += -D" ++ ToList(D) ++ "=1\n");
 					({d, DKey, DVal}) ->
-						Write("ERLC_OPTS += -D" ++ atom_to_list(DKey) ++ "=" ++ atom_to_list(DVal) ++ "\n");
+						Write("ERLC_OPTS += -D" ++ ToList(DKey) ++ "=" ++ ToList(DVal) ++ "\n");
 					({i, I}) ->
 						Write(["ERLC_OPTS += -I ", I, "\n"]);
 					({platform_define, Regex, D}) ->
 						case rebar_utils:is_arch(Regex) of
-							true -> Write("ERLC_OPTS += -D" ++ atom_to_list(D) ++ "=1\n");
+							true -> Write("ERLC_OPTS += -D" ++ ToList(D) ++ "=1\n");
 							false -> ok
 						end;
 					({parse_transform, PT}) ->
-						Write("ERLC_OPTS += +'{parse_transform, " ++ atom_to_list(PT) ++ "}'\n");
+						Write("ERLC_OPTS += +'{parse_transform, " ++ ToList(PT) ++ "}'\n");
 					(_) -> ok
 				end, ErlOpts)
 		end,
 		Write("\n")
 	end(),
+	GetHexVsn = fun(N) ->
+		case file:consult("$(call core_native_path,$(DEPS_DIR)/$1/rebar.lock)") of
+			{ok, Lock} ->
+				io:format("~p~n", [Lock]),
+				case lists:keyfind("1.1.0", 1, Lock) of
+					{_, LockPkgs} ->
+						io:format("~p~n", [LockPkgs]),
+						case lists:keyfind(atom_to_binary(N, latin1), 1, LockPkgs) of
+							{_, {pkg, _, Vsn}, _} ->
+								io:format("~p~n", [Vsn]),
+								{N, {hex, binary_to_list(Vsn)}};
+							_ ->
+								false
+						end;
+					_ ->
+						false
+				end;
+			_ ->
+				false
+		end
+	end,
 	fun() ->
 		File = case lists:keyfind(deps, 1, Conf) of
 			false -> [];
 			{_, Deps} ->
 				[begin case case Dep of
+							N when is_atom(N) -> GetHexVsn(N);
 							{N, S} when is_atom(N), is_list(S) -> {N, {hex, S}};
 							{N, S} when is_tuple(S) -> {N, S};
 							{N, _, S} -> {N, S};
@@ -4588,8 +4713,14 @@ endef
 define dep_autopatch_appsrc_script.erl
 	AppSrc = "$(call core_native_path,$(DEPS_DIR)/$1/src/$1.app.src)",
 	AppSrcScript = AppSrc ++ ".script",
-	Bindings = erl_eval:new_bindings(),
-	{ok, [Conf]} = file:script(AppSrcScript, Bindings),
+	{ok, Conf0} = file:consult(AppSrc),
+	Bindings0 = erl_eval:new_bindings(),
+	Bindings1 = erl_eval:add_binding('CONFIG', Conf0, Bindings0),
+	Bindings = erl_eval:add_binding('SCRIPT', AppSrcScript, Bindings1),
+	Conf = case file:script(AppSrcScript, Bindings) of
+		{ok, [C]} -> C;
+		{ok, C} -> C
+	end,
 	ok = file:write_file(AppSrc, io_lib:format("~p.~n", [Conf])),
 	halt()
 endef
@@ -4602,7 +4733,11 @@ define dep_autopatch_appsrc.erl
 		true ->
 			{ok, [{application, $(1), L0}]} = file:consult(AppSrcIn),
 			L1 = lists:keystore(modules, 1, L0, {modules, []}),
-			L2 = case lists:keyfind(vsn, 1, L1) of {_, git} -> lists:keyreplace(vsn, 1, L1, {vsn, "git"}); _ -> L1 end,
+			L2 = case lists:keyfind(vsn, 1, L1) of
+				{_, git} -> lists:keyreplace(vsn, 1, L1, {vsn, "git"});
+				{_, {cmd, _}} -> lists:keyreplace(vsn, 1, L1, {vsn, "cmd"});
+				_ -> L1
+			end,
 			L3 = case lists:keyfind(registered, 1, L2) of false -> [{registered, []}|L2]; _ -> L2 end,
 			ok = file:write_file(AppSrcOut, io_lib:format("~p.~n", [{application, $(1), L3}])),
 			case AppSrcOut of AppSrcIn -> ok; _ -> ok = file:delete(AppSrcIn) end
@@ -4640,7 +4775,7 @@ endef
 define dep_fetch_hex
 	mkdir -p $(ERLANG_MK_TMP)/hex $(DEPS_DIR)/$1; \
 	$(call core_http_get,$(ERLANG_MK_TMP)/hex/$1.tar,\
-		https://s3.amazonaws.com/s3.hex.pm/tarballs/$1-$(strip $(word 2,$(dep_$1))).tar); \
+		https://repo.hex.pm/tarballs/$1-$(strip $(word 2,$(dep_$1))).tar); \
 	tar -xOf $(ERLANG_MK_TMP)/hex/$1.tar contents.tar.gz | tar -C $(DEPS_DIR)/$1 -xzf -;
 endef
 
@@ -4740,87 +4875,6 @@ ERLANG_MK_RECURSIVE_DOC_DEPS_LIST = $(ERLANG_MK_TMP)/recursive-doc-deps-list.log
 ERLANG_MK_RECURSIVE_REL_DEPS_LIST = $(ERLANG_MK_TMP)/recursive-rel-deps-list.log
 ERLANG_MK_RECURSIVE_TEST_DEPS_LIST = $(ERLANG_MK_TMP)/recursive-test-deps-list.log
 ERLANG_MK_RECURSIVE_SHELL_DEPS_LIST = $(ERLANG_MK_TMP)/recursive-shell-deps-list.log
-
-# Copyright (c) 2015-2017, Loïc Hoguin <essen@ninenines.eu>
-# This file is part of erlang.mk and subject to the terms of the ISC License.
-
-.PHONY: distclean-kerl
-
-KERL_INSTALL_DIR ?= $(HOME)/erlang
-
-ifeq ($(strip $(KERL)),)
-KERL := $(ERLANG_MK_TMP)/kerl/kerl
-endif
-
-export KERL
-
-KERL_GIT ?= https://github.com/kerl/kerl
-KERL_COMMIT ?= master
-
-KERL_MAKEFLAGS ?=
-
-OTP_GIT ?= https://github.com/erlang/otp
-
-define kerl_otp_target
-ifeq ($(wildcard $(KERL_INSTALL_DIR)/$(1)),)
-$(KERL_INSTALL_DIR)/$(1): $(KERL)
-	MAKEFLAGS="$(KERL_MAKEFLAGS)" $(KERL) build git $(OTP_GIT) $(1) $(1)
-	$(KERL) install $(1) $(KERL_INSTALL_DIR)/$(1)
-endif
-endef
-
-define kerl_hipe_target
-ifeq ($(wildcard $(KERL_INSTALL_DIR)/$1-native),)
-$(KERL_INSTALL_DIR)/$1-native: $(KERL)
-	KERL_CONFIGURE_OPTIONS=--enable-native-libs \
-		MAKEFLAGS="$(KERL_MAKEFLAGS)" $(KERL) build git $(OTP_GIT) $1 $1-native
-	$(KERL) install $1-native $(KERL_INSTALL_DIR)/$1-native
-endif
-endef
-
-$(KERL):
-	$(verbose) mkdir -p $(ERLANG_MK_TMP)
-	$(gen_verbose) git clone --depth 1 $(KERL_GIT) $(ERLANG_MK_TMP)/kerl
-	$(verbose) cd $(ERLANG_MK_TMP)/kerl && git checkout $(KERL_COMMIT)
-	$(verbose) chmod +x $(KERL)
-
-distclean:: distclean-kerl
-
-distclean-kerl:
-	$(gen_verbose) rm -rf $(KERL)
-
-# Allow users to select which version of Erlang/OTP to use for a project.
-
-ERLANG_OTP ?=
-ERLANG_HIPE ?=
-
-# Use kerl to enforce a specific Erlang/OTP version for a project.
-ifneq ($(strip $(ERLANG_OTP)),)
-export PATH := $(KERL_INSTALL_DIR)/$(ERLANG_OTP)/bin:$(PATH)
-SHELL := env PATH=$(PATH) $(SHELL)
-$(eval $(call kerl_otp_target,$(ERLANG_OTP)))
-
-# Build Erlang/OTP only if it doesn't already exist.
-ifeq ($(wildcard $(KERL_INSTALL_DIR)/$(ERLANG_OTP))$(BUILD_ERLANG_OTP),)
-$(info Building Erlang/OTP $(ERLANG_OTP)... Please wait...)
-$(shell $(MAKE) $(KERL_INSTALL_DIR)/$(ERLANG_OTP) ERLANG_OTP=$(ERLANG_OTP) BUILD_ERLANG_OTP=1 >&2)
-endif
-
-else
-# Same for a HiPE enabled VM.
-ifneq ($(strip $(ERLANG_HIPE)),)
-export PATH := $(KERL_INSTALL_DIR)/$(ERLANG_HIPE)-native/bin:$(PATH)
-SHELL := env PATH=$(PATH) $(SHELL)
-$(eval $(call kerl_hipe_target,$(ERLANG_HIPE)))
-
-# Build Erlang/OTP only if it doesn't already exist.
-ifeq ($(wildcard $(KERL_INSTALL_DIR)/$(ERLANG_HIPE))$(BUILD_ERLANG_OTP),)
-$(info Building HiPE-enabled Erlang/OTP $(ERLANG_OTP)... Please wait...)
-$(shell $(MAKE) $(KERL_INSTALL_DIR)/$(ERLANG_HIPE) ERLANG_HIPE=$(ERLANG_HIPE) BUILD_ERLANG_OTP=1 >&2)
-endif
-
-endif
-endif
 
 # Copyright (c) 2015-2016, Loïc Hoguin <essen@ninenines.eu>
 # This file is part of erlang.mk and subject to the terms of the ISC License.
@@ -4924,7 +4978,7 @@ define app_file
 	{id$(comma)$(space)"$(1)"}$(comma))
 	{modules, [$(call comma_list,$(2))]},
 	{registered, []},
-	{applications, [$(call comma_list,kernel stdlib $(OTP_DEPS) $(LOCAL_DEPS) $(DEPS))]},
+	{applications, [$(call comma_list,kernel stdlib $(OTP_DEPS) $(LOCAL_DEPS) $(foreach dep,$(DEPS),$(call dep_name,$(dep))))]},
 	{env, $(subst \,\\,$(PROJECT_ENV))}$(if $(findstring {,$(PROJECT_APP_EXTRA_KEYS)),$(comma)$(newline)$(tab)$(subst \,\\,$(PROJECT_APP_EXTRA_KEYS)),)
 ]}.
 endef
@@ -4936,7 +4990,7 @@ define app_file
 	{id$(comma)$(space)"$(1)"}$(comma))
 	{modules, [$(call comma_list,$(2))]},
 	{registered, [$(call comma_list,$(PROJECT)_sup $(PROJECT_REGISTERED))]},
-	{applications, [$(call comma_list,kernel stdlib $(OTP_DEPS) $(LOCAL_DEPS) $(DEPS))]},
+	{applications, [$(call comma_list,kernel stdlib $(OTP_DEPS) $(LOCAL_DEPS) $(foreach dep,$(DEPS),$(call dep_name,$(dep))))]},
 	{mod, {$(PROJECT_MOD), []}},
 	{env, $(subst \,\\,$(PROJECT_ENV))}$(if $(findstring {,$(PROJECT_APP_EXTRA_KEYS)),$(comma)$(newline)$(tab)$(subst \,\\,$(PROJECT_APP_EXTRA_KEYS)),)
 ]}.
@@ -5357,7 +5411,7 @@ install-docs:: install-asciidoc
 install-asciidoc: asciidoc-manual
 	$(foreach s,$(MAN_SECTIONS),\
 		mkdir -p $(MAN_INSTALL_PATH)/man$s/ && \
-		install -g `id -u` -o `id -g` -m 0644 doc/man$s/*.gz $(MAN_INSTALL_PATH)/man$s/;)
+		install -g `id -g` -o `id -u` -m 0644 doc/man$s/*.gz $(MAN_INSTALL_PATH)/man$s/;)
 
 distclean-asciidoc-manual:
 	$(gen_verbose) rm -rf $(addprefix doc/man,$(MAN_SECTIONS))
@@ -6272,12 +6326,13 @@ endif
 
 EDOC_OPTS ?=
 EDOC_SRC_DIRS ?=
+EDOC_OUTPUT ?= doc
 
 define edoc.erl
 	SrcPaths = lists:foldl(fun(P, Acc) ->
 		filelib:wildcard(atom_to_list(P) ++ "/{src,c_src}") ++ Acc
 	end, [], [$(call comma_list,$(patsubst %,'%',$(EDOC_SRC_DIRS)))]),
-	DefaultOpts = [{source_path, SrcPaths}, {subpackages, false}],
+	DefaultOpts = [{dir, "$(EDOC_OUTPUT)"}, {source_path, SrcPaths}, {subpackages, false}],
 	edoc:application($(1), ".", [$(2)] ++ DefaultOpts),
 	halt(0).
 endef
@@ -6296,7 +6351,7 @@ edoc: distclean-edoc doc-deps
 	$(gen_verbose) $(call erlang,$(call edoc.erl,$(PROJECT),$(EDOC_OPTS)))
 
 distclean-edoc:
-	$(gen_verbose) rm -f doc/*.css doc/*.html doc/*.png doc/edoc-info
+	$(gen_verbose) rm -f $(EDOC_OUTPUT)/*.css $(EDOC_OUTPUT)/*.html $(EDOC_OUTPUT)/*.png $(EDOC_OUTPUT)/edoc-info
 
 # Copyright (c) 2013-2016, Loïc Hoguin <essen@ninenines.eu>
 # This file is part of erlang.mk and subject to the terms of the ISC License.
@@ -6448,7 +6503,7 @@ define eunit.erl
 	case "$(COVER)" of
 		"" -> ok;
 		_ ->
-			cover:export("eunit.coverdata")
+			cover:export("$(COVER_DATA_DIR)/eunit.coverdata")
 	end,
 	halt()
 endef
@@ -6457,10 +6512,10 @@ EUNIT_ERL_OPTS += -pa $(TEST_DIR) $(DEPS_DIR)/*/ebin $(APPS_DIR)/*/ebin $(CURDIR
 
 ifdef t
 ifeq (,$(findstring :,$(t)))
-eunit: test-build
+eunit: test-build cover-data-dir
 	$(gen_verbose) $(call erlang,$(call eunit.erl,['$(t)']),$(EUNIT_ERL_OPTS))
 else
-eunit: test-build
+eunit: test-build cover-data-dir
 	$(gen_verbose) $(call erlang,$(call eunit.erl,fun $(t)/0),$(EUNIT_ERL_OPTS))
 endif
 else
@@ -6470,7 +6525,7 @@ EUNIT_TEST_MODS = $(notdir $(basename $(call core_find,$(TEST_DIR)/,*.erl)))
 EUNIT_MODS = $(foreach mod,$(EUNIT_EBIN_MODS) $(filter-out \
 	$(patsubst %,%_tests,$(EUNIT_EBIN_MODS)),$(EUNIT_TEST_MODS)),'$(mod)')
 
-eunit: test-build $(if $(IS_APP),,apps-eunit)
+eunit: test-build $(if $(IS_APP),,apps-eunit) cover-data-dir
 	$(gen_verbose) $(call erlang,$(call eunit.erl,[$(call comma_list,$(EUNIT_MODS))]),$(EUNIT_ERL_OPTS))
 
 ifneq ($(ALL_APPS_DIRS),)
@@ -6522,6 +6577,7 @@ distclean:: distclean-relx-rel
 # Plugin-specific targets.
 
 $(RELX):
+	$(verbose) mkdir -p $(ERLANG_MK_TMP)
 	$(gen_verbose) $(call core_http_get,$(RELX),$(RELX_URL))
 	$(verbose) chmod +x $(RELX)
 
@@ -6601,6 +6657,69 @@ build-shell-deps: $(ALL_SHELL_DEPS_DIRS)
 
 shell: build-shell-deps
 	$(gen_verbose) $(SHELL_ERL) -pa $(SHELL_PATHS) $(SHELL_OPTS)
+
+# Copyright 2017, Stanislaw Klekot <dozzie@jarowit.net>
+# This file is part of erlang.mk and subject to the terms of the ISC License.
+
+.PHONY: distclean-sphinx sphinx
+
+# Configuration.
+
+SPHINX_BUILD ?= sphinx-build
+SPHINX_SOURCE ?= doc
+SPHINX_CONFDIR ?=
+SPHINX_FORMATS ?= html
+SPHINX_DOCTREES ?= $(ERLANG_MK_TMP)/sphinx.doctrees
+SPHINX_OPTS ?=
+
+#sphinx_html_opts =
+#sphinx_html_output = html
+#sphinx_man_opts =
+#sphinx_man_output = man
+#sphinx_latex_opts =
+#sphinx_latex_output = latex
+
+# Helpers.
+
+sphinx_build_0 = @echo " SPHINX" $1; $(SPHINX_BUILD) -N -q
+sphinx_build_1 = $(SPHINX_BUILD) -N
+sphinx_build_2 = set -x; $(SPHINX_BUILD)
+sphinx_build = $(sphinx_build_$(V))
+
+define sphinx.build
+$(call sphinx_build,$1) -b $1 -d $(SPHINX_DOCTREES) $(if $(SPHINX_CONFDIR),-c $(SPHINX_CONFDIR)) $(SPHINX_OPTS) $(sphinx_$1_opts) -- $(SPHINX_SOURCE) $(call sphinx.output,$1)
+
+endef
+
+define sphinx.output
+$(if $(sphinx_$1_output),$(sphinx_$1_output),$1)
+endef
+
+# Targets.
+
+ifneq ($(wildcard $(if $(SPHINX_CONFDIR),$(SPHINX_CONFDIR),$(SPHINX_SOURCE))/conf.py),)
+docs:: sphinx
+distclean:: distclean-sphinx
+endif
+
+help::
+	$(verbose) printf "%s\n" "" \
+		"Sphinx targets:" \
+		"  sphinx      Generate Sphinx documentation." \
+		"" \
+		"ReST sources and 'conf.py' file are expected in directory pointed by" \
+		"SPHINX_SOURCE ('doc' by default). SPHINX_FORMATS lists formats to build (only" \
+		"'html' format is generated by default); target directory can be specified by" \
+		'setting sphinx_$${format}_output, for example: sphinx_html_output = output/html' \
+		"Additional Sphinx options can be set in SPHINX_OPTS."
+
+# Plugin-specific targets.
+
+sphinx:
+	$(foreach F,$(SPHINX_FORMATS),$(call sphinx.build,$F))
+
+distclean-sphinx:
+	$(gen_verbose) rm -rf $(filter-out $(SPHINX_SOURCE),$(foreach F,$(SPHINX_FORMATS),$(call sphinx.output,$F)))
 
 # Copyright (c) 2017, Jean-Sébastien Pédron <jean-sebastien@rabbitmq.com>
 # This file is contributed to erlang.mk and subject to the terms of the ISC License.
@@ -6707,23 +6826,20 @@ distclean-xref:
 # Copyright (c) 2015, Viktor Söderqvist <viktor@zuiderkwast.se>
 # This file is part of erlang.mk and subject to the terms of the ISC License.
 
-COVER_REPORT_DIR = cover
+COVER_REPORT_DIR ?= cover
+COVER_DATA_DIR ?= $(CURDIR)
 
 # Hook in coverage to ct
 
 ifdef COVER
 ifdef CT_RUN
 ifneq ($(wildcard $(TEST_DIR)),)
-# All modules in 'ebin'
-COVER_MODS = $(notdir $(basename $(call core_ls,ebin/*.beam)))
-
 test-build:: $(TEST_DIR)/ct.cover.spec
 
-$(TEST_DIR)/ct.cover.spec:
-	$(verbose) echo Cover mods: $(COVER_MODS)
+$(TEST_DIR)/ct.cover.spec: cover-data-dir
 	$(gen_verbose) printf "%s\n" \
-		'{incl_mods,[$(subst $(space),$(comma),$(COVER_MODS))]}.' \
-		'{export,"$(CURDIR)/ct.coverdata"}.' > $@
+		"{incl_app, '$(PROJECT)', details}." \
+		'{export,"$(abspath $(COVER_DATA_DIR))/ct.coverdata"}.' > $@
 
 CT_RUN += -cover $(TEST_DIR)/ct.cover.spec
 endif
@@ -6737,6 +6853,13 @@ ifneq ($(COVER_REPORT_DIR),)
 tests::
 	$(verbose) $(MAKE) --no-print-directory cover-report
 endif
+
+cover-data-dir: | $(COVER_DATA_DIR)
+
+$(COVER_DATA_DIR):
+	$(verbose) mkdir -p $(COVER_DATA_DIR)
+else
+cover-data-dir:
 endif
 
 clean:: coverdata-clean
@@ -6759,19 +6882,19 @@ help::
 
 # Plugin specific targets
 
-COVERDATA = $(filter-out all.coverdata,$(wildcard *.coverdata))
+COVERDATA = $(filter-out $(COVER_DATA_DIR)/all.coverdata,$(wildcard $(COVER_DATA_DIR)/*.coverdata))
 
 .PHONY: coverdata-clean
 coverdata-clean:
-	$(gen_verbose) rm -f *.coverdata $(TEST_DIR)/ct.cover.spec
+	$(gen_verbose) rm -f $(COVER_DATA_DIR)/*.coverdata $(TEST_DIR)/ct.cover.spec
 
 # Merge all coverdata files into one.
 define cover_export.erl
 	$(foreach f,$(COVERDATA),cover:import("$(f)") == ok orelse halt(1),)
-	cover:export("$@"), halt(0).
+	cover:export("$(COVER_DATA_DIR)/$@"), halt(0).
 endef
 
-all.coverdata: $(COVERDATA)
+all.coverdata: $(COVERDATA) cover-data-dir
 	$(gen_verbose) $(call erlang,$(cover_export.erl))
 
 # These are only defined if COVER_REPORT_DIR is non-empty. Set COVER_REPORT_DIR to
@@ -6782,6 +6905,7 @@ ifneq ($(COVER_REPORT_DIR),)
 
 cover-report-clean:
 	$(gen_verbose) rm -rf $(COVER_REPORT_DIR)
+	$(if $(shell ls -A $(COVER_DATA_DIR)/),,$(verbose) rmdir $(COVER_DATA_DIR))
 
 ifeq ($(COVERDATA),)
 cover-report:
