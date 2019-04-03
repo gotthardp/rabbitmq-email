@@ -15,6 +15,7 @@ This plugin is moderately mature. The described functionality is fully implement
 and has been used in production for a couple of years. Feedback from users and test suite
 contributions are encouraged.
 
+[![Build Status](https://travis-ci.org/gotthardp/rabbitmq-email.svg?branch=master)](https://travis-ci.org/gotthardp/rabbitmq-email)
 
 ## Installation
 
