@@ -60,13 +60,13 @@ connection.close()
 The message gets converted as shown in the table below. No content filtering
 is performed in this direction.
 
-  AMQP                   | SMTP
- ------------------------|------------------------
-                         | From: noreply@<domain>
-  routing_key            | To
-  message_id             | Message-Id
-  content_type           | Content-Type
-  headers                | additional headers
+| AMQP                   | SMTP                   |
+|------------------------|------------------------|
+|                        | From: noreply@<domain> |
+| routing_key            | To                     |
+| message_id             | Message-Id             |
+| content_type           | Content-Type           |
+| headers                | additional headers     |
 
 
 ### SMTP to AMQP 0-9-1 Conversion Workflow
@@ -157,16 +157,14 @@ the table below. The adapter will pass to AMQP only selected MIME headers
 {email_headers, ["subject", "from", "charset"]},
 ```
 
-  SMTP                   | AMQP
- ------------------------|------------------------
-  From                   |
-  To                     | exchange, routing_key
-                         | message_id
-                         | timestamp
-  Subject                | Subject
-  Content-Type           | content_type
-
-
+| SMTP                    | AMQP                  |
+|-------------------------|-----------------------|
+| From                    |                       |
+| To                      | exchange, routing_key |
+| Message-Id              | message_id            |
+|                         | timestamp             |
+| Subject                 | Subject               |
+| Content-Type            | content_type          |
 
 ### RabbitMQ Configuration Example
 
