@@ -40,7 +40,6 @@ endif
 dep_amqp_client                       = git_rmq rabbitmq-erlang-client $(current_rmq_ref) $(base_rmq_ref) master
 dep_amqp10_client                     = git_rmq rabbitmq-amqp1.0-client $(current_rmq_ref) $(base_rmq_ref) master
 dep_amqp10_common                     = git_rmq rabbitmq-amqp1.0-common $(current_rmq_ref) $(base_rmq_ref) master
-dep_ra                                = git_rmq ra $(current_rmq_ref) $(base_rmq_ref) master
 dep_rabbit                            = git_rmq rabbitmq-server $(current_rmq_ref) $(base_rmq_ref) master
 dep_rabbit_common                     = git_rmq rabbitmq-common $(current_rmq_ref) $(base_rmq_ref) master
 dep_rabbitmq_amqp1_0                  = git_rmq rabbitmq-amqp1.0 $(current_rmq_ref) $(base_rmq_ref) master
@@ -48,6 +47,7 @@ dep_rabbitmq_auth_backend_amqp        = git_rmq rabbitmq-auth-backend-amqp $(cur
 dep_rabbitmq_auth_backend_cache       = git_rmq rabbitmq-auth-backend-cache $(current_rmq_ref) $(base_rmq_ref) master
 dep_rabbitmq_auth_backend_http        = git_rmq rabbitmq-auth-backend-http $(current_rmq_ref) $(base_rmq_ref) master
 dep_rabbitmq_auth_backend_ldap        = git_rmq rabbitmq-auth-backend-ldap $(current_rmq_ref) $(base_rmq_ref) master
+dep_rabbitmq_auth_backend_oauth2      = git_rmq rabbitmq-auth-backend-oauth2 $(current_rmq_ref) $(base_rmq_ref) master
 dep_rabbitmq_auth_mechanism_ssl       = git_rmq rabbitmq-auth-mechanism-ssl $(current_rmq_ref) $(base_rmq_ref) master
 dep_rabbitmq_aws                      = git_rmq rabbitmq-aws $(current_rmq_ref) $(base_rmq_ref) master
 dep_rabbitmq_boot_steps_visualiser    = git_rmq rabbitmq-boot-steps-visualiser $(current_rmq_ref) $(base_rmq_ref) master
@@ -79,6 +79,7 @@ dep_rabbitmq_peer_discovery_common    = git_rmq rabbitmq-peer-discovery-common $
 dep_rabbitmq_peer_discovery_consul    = git_rmq rabbitmq-peer-discovery-consul $(current_rmq_ref) $(base_rmq_ref) master
 dep_rabbitmq_peer_discovery_etcd      = git_rmq rabbitmq-peer-discovery-etcd $(current_rmq_ref) $(base_rmq_ref) master
 dep_rabbitmq_peer_discovery_k8s       = git_rmq rabbitmq-peer-discovery-k8s $(current_rmq_ref) $(base_rmq_ref) master
+dep_rabbitmq_prometheus               = git_rmq rabbitmq-prometheus $(current_rmq_ref) $(base_rmq_ref) master
 dep_rabbitmq_random_exchange          = git_rmq rabbitmq-random-exchange $(current_rmq_ref) $(base_rmq_ref) master
 dep_rabbitmq_recent_history_exchange  = git_rmq rabbitmq-recent-history-exchange $(current_rmq_ref) $(base_rmq_ref) master
 dep_rabbitmq_routing_node_stamp       = git_rmq rabbitmq-routing-node-stamp $(current_rmq_ref) $(base_rmq_ref) master
@@ -109,20 +110,22 @@ dep_rabbitmq_public_umbrella          = git_rmq rabbitmq-public-umbrella $(curre
 # all projects use the same versions. It avoids conflicts and makes it
 # possible to work with rabbitmq-public-umbrella.
 
+dep_accept = hex 0.3.5
 dep_cowboy = hex 2.6.1
 dep_cowlib = hex 2.7.0
 dep_jsx = hex 2.9.0
-dep_lager = hex 3.6.9
-dep_ra = git https://github.com/rabbitmq/ra.git master
+dep_lager = hex 3.8.0
+dep_prometheus = hex 4.4.0
+dep_ra = hex 1.0.1
 dep_ranch = hex 1.7.1
-dep_ranch_proxy_protocol = hex 1.5.0
-dep_recon = hex 2.4.0
-dep_sysmon_handler = hex 1.1.0
+dep_recon = hex 2.5.0
+dep_observer_cli = hex 1.5.2
+dep_stdout_formatter = hex 0.2.2
+dep_sysmon_handler = hex 1.2.0
 
 RABBITMQ_COMPONENTS = amqp_client \
 		      amqp10_common \
 		      amqp10_client \
-		      ra \
 		      rabbit \
 		      rabbit_common \
 		      rabbitmq_amqp1_0 \
@@ -130,6 +133,7 @@ RABBITMQ_COMPONENTS = amqp_client \
 		      rabbitmq_auth_backend_cache \
 		      rabbitmq_auth_backend_http \
 		      rabbitmq_auth_backend_ldap \
+		      rabbitmq_auth_backend_oauth2 \
 		      rabbitmq_auth_mechanism_ssl \
 		      rabbitmq_aws \
 		      rabbitmq_boot_steps_visualiser \
@@ -161,6 +165,7 @@ RABBITMQ_COMPONENTS = amqp_client \
 		      rabbitmq_peer_discovery_consul \
 		      rabbitmq_peer_discovery_etcd \
 		      rabbitmq_peer_discovery_k8s \
+		      rabbitmq_prometheus \
 		      rabbitmq_random_exchange \
 		      rabbitmq_recent_history_exchange \
 		      rabbitmq_routing_node_stamp \
@@ -181,6 +186,15 @@ RABBITMQ_COMPONENTS = amqp_client \
 		      rabbitmq_web_stomp_examples \
 		      rabbitmq_website
 
+# Erlang.mk does not rebuild dependencies by default, once they were
+# compiled once, except for those listed in the `$(FORCE_REBUILD)`
+# variable.
+#
+# We want all RabbitMQ components to always be rebuilt: this eases
+# the work on several components at the same time.
+
+FORCE_REBUILD = $(RABBITMQ_COMPONENTS)
+
 # Several components have a custom erlang.mk/build.config, mainly
 # to disable eunit. Therefore, we can't use the top-level project's
 # erlang.mk copy.
@@ -199,7 +213,7 @@ export current_rmq_ref
 
 ifeq ($(origin base_rmq_ref),undefined)
 ifneq ($(wildcard .git),)
-possible_base_rmq_ref := master
+possible_base_rmq_ref := v3.8.x
 ifeq ($(possible_base_rmq_ref),$(current_rmq_ref))
 base_rmq_ref := $(current_rmq_ref)
 else
