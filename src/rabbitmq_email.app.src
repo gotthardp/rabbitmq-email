@@ -20,6 +20,7 @@
         ]},
         {server_auth, rabbitmq},
         {server_starttls, false},
+        {session_limit, 20},
         {email_domains,
             [{<<"example.com">>, {<<"/">>, <<"email-in">>}}
         ]},

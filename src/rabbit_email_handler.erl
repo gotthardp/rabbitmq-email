@@ -24,18 +24,20 @@
 
 -define(AUTH_REQUIRED, "530 SMTP authentication is required").
 
-init(Hostname, SessionCount, Address, Options) when SessionCount < 20 ->
-    rabbit_log:info("~s SMTP connection from ~p~n", [Hostname, Address]),
-    process_flag(trap_exit, true),
-    {ok, SenderPid} = rabbit_message_sender:start_link(Hostname),
+init(Hostname, SessionCount, Address, Options) ->
+    case application:get_env(rabbitmq_email, session_limit) of 
+        {ok, SessionLimit} when SessionCount < SessionLimit ->
+            rabbit_log:info("~s SMTP connection from ~p~n", [Hostname, Address]),
+            process_flag(trap_exit, true),
+            {ok, SenderPid} = rabbit_message_sender:start_link(Hostname),
 
-    Banner = [Hostname, " ESMTP rabbit_email_handler"],
-    State = #state{sender_pid=SenderPid, options=Options},
-    {ok, Banner, State};
-
-init(Hostname, _SessionCount, _Address, _Options) ->
-    rabbit_log:warning("Connection limit exceeded~n"),
-    {stop, normal, ["421 ", Hostname, " is too busy to accept mail right now"]}.
+            Banner = [Hostname, " ESMTP rabbit_email_handler"],
+            State = #state{sender_pid=SenderPid, options=Options},
+            {ok, Banner, State};
+        _Else ->
+            rabbit_log:warning("Connection limit exceeded~n"),
+            {stop, normal, ["421 ", Hostname, " is too busy to accept mail right now"]}
+    end.
 
 handle_HELO(Hostname, State) ->
     rabbit_log:info("HELO from ~s~n", [Hostname]),
