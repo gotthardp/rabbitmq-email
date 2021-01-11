@@ -111,17 +111,17 @@ dep_rabbitmq_public_umbrella          = git_rmq rabbitmq-public-umbrella $(curre
 # possible to work with rabbitmq-public-umbrella.
 
 dep_accept = hex 0.3.5
-dep_cowboy = hex 2.6.1
-dep_cowlib = hex 2.7.0
-dep_jsx = hex 2.9.0
+dep_cowboy = hex 2.8.0
+dep_cowlib = hex 2.9.1
+dep_jsx = hex 2.11.0
 dep_lager = hex 3.8.0
-dep_prometheus = hex 4.4.0
-dep_ra = hex 1.0.1
+dep_prometheus = hex 4.6.0
+dep_ra = hex 1.1.8
 dep_ranch = hex 1.7.1
-dep_recon = hex 2.5.0
-dep_observer_cli = hex 1.5.2
-dep_stdout_formatter = hex 0.2.2
-dep_sysmon_handler = hex 1.2.0
+dep_recon = hex 2.5.1
+dep_observer_cli = hex 1.5.4
+dep_stdout_formatter = hex 0.2.4
+dep_sysmon_handler = hex 1.3.0
 
 RABBITMQ_COMPONENTS = amqp_client \
 		      amqp10_common \
@@ -316,21 +316,41 @@ prepare-dist::
 # Umbrella-specific settings.
 # --------------------------------------------------------------------
 
-# If this project is under the Umbrella project, we override $(DEPS_DIR)
-# to point to the Umbrella's one. We also disable `make distclean` so
-# $(DEPS_DIR) is not accidentally removed.
+# If the top-level project is a RabbitMQ component, we override
+# $(DEPS_DIR) for this project to point to the top-level's one.
+#
+# We also verify that the guessed DEPS_DIR is actually named `deps`,
+# to rule out any situation where it is a coincidence that we found a
+# `rabbitmq-components.mk` up upper directories.
 
-ifneq ($(wildcard ../../UMBRELLA.md),)
-UNDER_UMBRELLA = 1
-else ifneq ($(wildcard UMBRELLA.md),)
-UNDER_UMBRELLA = 1
+possible_deps_dir_1 = $(abspath ..)
+possible_deps_dir_2 = $(abspath ../../..)
+
+ifeq ($(notdir $(possible_deps_dir_1)),deps)
+ifneq ($(wildcard $(possible_deps_dir_1)/../rabbitmq-components.mk),)
+deps_dir_overriden = 1
+DEPS_DIR ?= $(possible_deps_dir_1)
+DISABLE_DISTCLEAN = 1
+endif
 endif
 
-ifeq ($(UNDER_UMBRELLA),1)
-ifneq ($(PROJECT),rabbitmq_public_umbrella)
-DEPS_DIR ?= $(abspath ..)
+ifeq ($(deps_dir_overriden),)
+ifeq ($(notdir $(possible_deps_dir_2)),deps)
+ifneq ($(wildcard $(possible_deps_dir_2)/../rabbitmq-components.mk),)
+deps_dir_overriden = 1
+DEPS_DIR ?= $(possible_deps_dir_2)
+DISABLE_DISTCLEAN = 1
+endif
+endif
 endif
 
+ifneq ($(wildcard UMBRELLA.md),)
+DISABLE_DISTCLEAN = 1
+endif
+
+# We disable `make distclean` so $(DEPS_DIR) is not accidentally removed.
+
+ifeq ($(DISABLE_DISTCLEAN),1)
 ifneq ($(filter distclean distclean-deps,$(MAKECMDGOALS)),)
 SKIP_DEPS = 1
 endif
