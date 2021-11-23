@@ -66,7 +66,7 @@ end_per_testcase(Testcase, Config) ->
 email_header_test(Config) ->
     [
      ?assert(filter_email(Config, "t0001.txt", {<<"Subject">>, undefined})),
-     ?assert(filter_email(Config, "t0002.txt", {<<"Subject">>, <<"=?utf-8?B?Z29iYmxlZGlnb29r?=">>}))
+     ?assert(filter_email(Config, "t0002.txt", {<<"Subject">>, <<"gobbledigook">>}))
     ].
 
 email_filtering_test(Config) ->
@@ -104,7 +104,7 @@ email_filtering_hunny_samples_test(Config) ->
      ?assert(filter_email(Config, "samples/messages/m1008.txt", {content_type, <<"text/plain">>})),
      ?assert(filter_email(Config, "samples/messages/m1009.txt", {content_type, <<"text/plain">>})),
      %% encoding mismatch
-     ?assertNot(filter_email(Config, "samples/messages/m1010.txt", error)),
+     ?assert(filter_email(Config, "samples/messages/m1010.txt", {error, {permanent_failure, "127.0.0.1", <<"554 Message cannot be delivered\r\n">>}})),
      ?assert(filter_email(Config, "samples/messages/m1011.txt", {content_type, <<"text/plain">>})),
      ?assert(filter_email(Config, "samples/messages/m1012.txt", {content_type, <<"text/plain">>})),
      ?assert(filter_email(Config, "samples/messages/m1013.txt", {content_type, <<"image/png">>})),
@@ -209,10 +209,10 @@ expect(Props, error) ->
     ct:pal("unexpected success, expected error, received ~w", [Props]),
     false.
 
-expect_error(_Reason, {error}) ->
+expect_error(_Reason, error) ->
     true;
 expect_error(_Reason, {error, _}) ->
     true;
 expect_error(Reason, Expected) ->
-    ct:pal("unexpected error, expected ~w, received ~s", [Expected, Reason]),
+    ct:pal("unexpected error, expected ~p, received ~p", [Expected, Reason]),
     false.

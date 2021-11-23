@@ -4,6 +4,7 @@
 *.lock
 erl_crash.dump
 rabbitmq_email.d
+.tool-versions
 
 .erlang.mk/
 cover/
@@ -14,6 +15,7 @@ escript/
 logs/
 plugins/
 sbin/
+tmp/
 
 test/system_SUITE_data/samples*
 test/TEST-*.xml

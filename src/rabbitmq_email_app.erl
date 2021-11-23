@@ -4,6 +4,7 @@
 % file, You can obtain one at http://mozilla.org/MPL/2.0/.
 %
 % Copyright (C) 2014 Petr Gotthard <petr.gotthard@centrum.cz>
+% Copyright (c) 2021 VMware, Inc. or its affiliates.  All rights reserved.
 %
 
 -module(rabbitmq_email_app).
@@ -14,23 +15,26 @@
 -behaviour(supervisor).
 -export([init/1]).
 
-start(normal, []) ->
-    supervisor:start_link(?MODULE, _Arg = []).
+start(_Type, _StartArgs) ->
+    supervisor:start_link(?MODULE, []).
     
 stop(_State) ->
     ok.
 
 init([]) ->
-    % check for optional dependencies
-    case erlang:function_exported(iconv, conv, 2) of
-        true -> rabbit_log:info("iconv detected: content trancoding is enabled");
-        false -> rabbit_log:warning("iconv not detected: content transcoding is DISABLED")
-    end,
     {ok, ServerConfig} = application:get_env(rabbitmq_email, server_config),
-    {ok, {{one_for_one, 3, 10},
-        % email to amqp
-        [{email_handler, {gen_smtp_server, start_link, [rabbit_email_handler, ServerConfig]},
-            permanent, 10000, worker, [rabbit_email_handler]},
-        % amqp to email
-        {message_handler_sup, {rabbit_message_handler_sup, start_link, []},
-            permanent, 10000, supervisor, [rabbit_message_handler_sup]}]}}.
+
+    % email to amqp
+    SmtpServerSpec = gen_smtp_server:child_spec(email_handler, rabbit_email_handler, ServerConfig),
+
+    % amqp to email
+    MessageHandlerSpec = {message_handler_sup, {rabbit_message_handler_sup, start_link, []}, permanent, 10000, supervisor, [rabbit_message_handler_sup]},
+
+    Specs = [SmtpServerSpec, MessageHandlerSpec],
+
+    Flags = #{
+        strategy  => one_for_one,
+        intensity => 3,
+        period    => 10
+    },
+    {ok, {Flags, Specs}}.

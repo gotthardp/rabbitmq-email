@@ -1,0 +1,30 @@
+name: Build
+
+on:
+  pull_request:
+    branches:
+      - 'master'
+  push:
+    branches:
+      - 'master'
+
+jobs:
+  CI:
+    name: Build and test on Erlang/OTP ${{ matrix.otp-version }}
+    runs-on: ubuntu-18.04
+    strategy:
+      fail-fast: false
+      matrix:
+        otp-version: [23, 24]
+    env:
+      LATEST_OTP_RELEASE: 24
+    steps:
+      - uses: actions/checkout@v2
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{matrix.otp-version}}
+          elixir-version: 1.11.4
+      - name: Compile
+        run: make
+      - name: Test
+        run: make tests

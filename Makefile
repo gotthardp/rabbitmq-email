@@ -1,23 +1,20 @@
 PROJECT = rabbitmq_email
 PROJECT_DESCRIPTION = RabbitMQ plugin that converts incoming emails into messages and messages into outgoing emails
+RABBITMQ_VERSION ?= v3.9.x
 
-# use the patched gen_smtp from a fork
-dep_gen_smtp = git https://github.com/gotthardp/gen_smtp.git master
-dep_eiconv = git https://github.com/zotonic/eiconv.git master
+# Note: must be the same version as in rabbitmq-components.mk
+DEP_RANCH_VERSION = 2.1.0
 
-BUILD_DEPS += gen_smtp
+dep_ranch = ranch $(DEP_RANCH_VERSION)
+dep_eiconv = hex 1.0.0
+dep_gen_smtp = git https://github.com/gen-smtp/gen_smtp.git master
 
-DEPS = gen_smtp rabbit_common amqp_client rabbit
-ifeq ($(EICONV),1)
-DEPS += eiconv
-endif
+DEPS = gen_smtp rabbit_common amqp_client rabbit eiconv
 
-TEST_DEPS = rabbitmq_ct_helpers rabbitmq_ct_client_helpers amqp_client
+TEST_DEPS = rabbitmq_ct_helpers rabbitmq_ct_client_helpers amqp_client eiconv
 
 DEP_EARLY_PLUGINS = rabbit_common/mk/rabbitmq-early-plugin.mk
 DEP_PLUGINS = rabbit_common/mk/rabbitmq-plugin.mk
-
-NO_AUTOPATCH += eiconv
 
 # FIXME: Use erlang.mk patched for RabbitMQ, while waiting for PRs to be
 # reviewed and merged.
@@ -32,7 +29,7 @@ ERLANG_MK_COMMIT = rabbitmq-tmp
 test-build:: test/system_SUITE_data/samples.zip
 
 test/system_SUITE_data/samples.zip:
-	$(gen_verbose) wget http://www.hunnysoft.com/mime/samples/samples.zip -O $@
+	$(gen_verbose) curl -L http://www.hunnysoft.com/mime/samples/samples.zip --output $@
 	$(gen_verbose) unzip $@ -d $(@D) || true
 
 .PHONY: delete-test/system_SUITE_data/samples.zip
@@ -43,4 +40,14 @@ distclean:: delete-test/system_SUITE_data/samples.zip
 	@:
 
 include rabbitmq-components.mk
+
+dep_amqp_client                = git_rmq-subfolder rabbitmq-erlang-client $(RABBITMQ_VERSION)
+dep_rabbit_common              = git_rmq-subfolder rabbitmq-common $(RABBITMQ_VERSION)
+dep_rabbit                     = git_rmq-subfolder rabbitmq-server $(RABBITMQ_VERSION)
+dep_rabbitmq_ct_client_helpers = git_rmq-subfolder rabbitmq-ct-client-helpers $(RABBITMQ_VERSION)
+dep_rabbitmq_ct_helpers        = git_rmq-subfolder rabbitmq-ct-helpers $(RABBITMQ_VERSION)
+
 include erlang.mk
+
+autopatch-gen_smtp::
+	$(verbose) sed -i.autopatch.bak -e 's/dep_ranch[^=]*=.*ranch$$/dep_ranch = hex $(DEP_RANCH_VERSION) ranch/' $(DEPS_DIR)/gen_smtp/Makefile

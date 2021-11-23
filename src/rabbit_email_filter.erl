@@ -28,10 +28,16 @@ extract_payload(Data) ->
             end
     end.
 
-extract_headers(Headers, Params) ->
+merge_and_filter(Headers, ContentTypeParams) ->
+    AllHeaders = lists:merge(Headers, ContentTypeParams),
+    lists:filter(fun filter_header/1, AllHeaders).
+
+extract_headers(Headers, Params) when is_map(Params) ->
+        ContentTypeParams = maps:get(<<"content-type-params">>, Params, []),
+        merge_and_filter(Headers, ContentTypeParams);
+extract_headers(Headers, Params) when is_list(Params) ->
         ContentTypeParams = proplists:get_value(<<"content-type-params">>, Params, []),
-        AllHeaders = lists:merge(Headers, ContentTypeParams),
-        lists:filter(fun filter_header/1, AllHeaders).
+        merge_and_filter(Headers, ContentTypeParams).
 
 filter_header({Name, _Value}) ->
     Name2 = string:to_lower(binary_to_list(Name)),
@@ -42,8 +48,9 @@ filter_body(Data) when is_binary(Data) ->
     try mimemail:decode(Data) of
         {T,S,H,A,P} -> filter_body({T,S,H,A,P})
     catch
-    What:Why ->
-        rabbit_log:error("Message decode FAILED with ~p:~p~n", [What, Why]),
+    % NOTE: requires OTP 21
+    Class:Error:Stacktrace ->
+        rabbit_log:error("Message decode FAILED with ~p:~p~n~p", [Class, Error, Stacktrace]),
         drop
     end;
 

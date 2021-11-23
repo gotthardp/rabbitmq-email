@@ -15,12 +15,29 @@ This plugin is moderately mature. The described functionality is fully implement
 and has been used in production for a couple of years. Feedback from users and test suite
 contributions are encouraged.
 
-[![Build Status](https://travis-ci.org/gotthardp/rabbitmq-email.svg?branch=master)](https://travis-ci.org/gotthardp/rabbitmq-email)
+[![Build Status](https://github.com/gotthardp/rabbitmq-email/actions/workflows/main.yml/badge.svg)](https://github.com/gotthardp/rabbitmq-email/actions/new)
 
 ## Installation
 
-Binary releases of this plugin are [published on GitHub](https://github.com/gotthardp/rabbitmq-email/releases)
-and [Bintray](https://bintray.com/rabbitmq/community-plugins/rabbitmq_email) (note: on Bintray, [gen_smtp](https://dl.bintray.com/rabbitmq/community-plugins/gen_smtp-0.12.0.ez) must be downloaded separately).
+Due to the dependency on the `eiconv` library, which has a C source code component, this plugin must be compiled from source. If you are planning to use RabbitMQ version 3.9.10:
+
+```
+git clone https://github.com/gotthardp/rabbitmq-email.git
+cd rabbitmq-email
+make RABBITMQ_VERSION=v3.9.10
+make tests # optional
+make dist
+```
+
+Copy the following directories to your RabbitMQ `plugins/` directory:
+
+```
+plugins/eiconv-1.0.0
+plugins/gen_smtp-1.1.1
+plugins/rabbitmq_email-1.0.0
+```
+
+Note that as of version 1.0.0 this plugin has been tested with RabbitMQ v3.9.x versions only.
 
 ## Documentation
 
@@ -184,30 +201,34 @@ For example:
 ```erlang
 {rabbitmq_email, [
     %% gen_smtp server parameters
-    %% see https://github.com/Vagabond/gen_smtp#server-example
     {server_config, [
-        [{port, 2525}, {protocol, tcp}, {domain, "example.com"}, {address,{0,0,0,0}}]
+        {port, 2525}, {protocol, tcp}, {domain, "example.com"}, {address,{0,0,0,0}}
     ]},
+
     %% how clients are authenticated; either 'false' or 'rabbitmq' (default)
     {server_auth, rabbitmq},
+
     %% whether STARTTLS shall be offered; either 'true' or 'false' (default)
     {server_starttls, true},
 
     %% maps inbound email domains to vhosts and exchanges: [{email-domain, {vhost, exchange}}, ...}
-    {email_domains,
-        [{<<"example.com">>, {<<"/">>, <<"email-in">>}}
+    {email_domains, [
+        {<<"example.com">>, {<<"/">>, <<"email-in">>}}
     ]},
 
     %% outbound email queues: [{{vhost, queue}, email-domain}, ...]
-    {email_queues,
-        [{{<<"/">>, <<"email-out">>}, <<"example.com">>}
+    {email_queues, [
+        {{<<"/">>, <<"email-out">>}, <<"example.com">>}
     ]},
+
     %% sender indicated in the From header
     {email_from, <<"noreply">>},
+
     %% sender indicated in the SMTP from
     {client_sender, "rabbitmq@example.com"},
+
     %% gen_smtp client parameters
-    %% see https://github.com/Vagabond/gen_smtp#client-example
+    %% see https://github.com/gen-smtp/gen_smtp#client-example
     {client_config, [
         {relay, "smtp.example.com"}
     ]}
@@ -261,18 +282,14 @@ Original MIME headers and body are critically important in troubleshooting.
 You can build and install it like any other plugin (see
 [the plugin development guide](http://www.rabbitmq.com/plugin-development.html)).
 
-To enable non-ASCII characters in e-mails, export `EICONV=1` and run `make dist`:
-
-    EICONV=1 make dist
-
-This is optional as it requires an Erlang NIF, `eiconv`. It is built
-automatically, but since this is a NIF (native code) its module
-(eiconv-1.1.ez) is not portable between platforms.  When `eiconv` is
-disabled the `rabbitmq-email` plugin will ignore both header and
-content encoding schemes.
+This plugin requires an Erlang NIF, `eiconv`. It is built automatically, but
+since this is a NIF (native code) its module is not portable between platforms.
 
 ### Change Log
 
+* 1.0.0 (Nov 23, 2021)
+  * Compatibility with recent RabbitMQ versions.
+    * `3.9.x`
 * 0.1.0 (Dec 22, 2015)
   * Compatibility changes for RabbitMQ 3.6.x.
 * 0.0.2 (Nov 14, 2015)
@@ -285,6 +302,7 @@ content encoding schemes.
 
 Copyright (c) 2014-2017 Petr Gotthard <petr.gotthard@centrum.cz>
 Copyright (c) 2017 Pivotal Software, Inc.
+Copyright (c) 2021 VMware, Inc. or its affiliates.  All rights reserved.
 
 This package is subject to the Mozilla Public License Version 2.0 (the "License");
 you may not use this file except in compliance with the License. You may obtain a
