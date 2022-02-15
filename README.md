@@ -15,7 +15,7 @@ This plugin is moderately mature. The described functionality is fully implement
 and has been used in production for a couple of years. Feedback from users and test suite
 contributions are encouraged.
 
-![Build Status](https://github.com/gotthardp/rabbitmq-email/actions/workflows/main.yaml/badge.svg?branch=master)
+[![Build Status](https://github.com/gotthardp/rabbitmq-email/actions/workflows/main.yaml/badge.svg?branch=master)](https://github.com/gotthardp/rabbitmq-email/actions)
 
 ## Installation
 
