@@ -19,14 +19,14 @@ contributions are encouraged.
 
 ## Installation
 
-Due to the dependency on the `eiconv` library, which has a C source code component, this plugin must be compiled from source. If you are planning to use RabbitMQ version 3.9.10:
+Due to the dependency on the `eiconv` library, which has a C source code component, this plugin must be compiled from source. If you are planning to use RabbitMQ version 3.9.13:
 
 ```
 git clone https://github.com/gotthardp/rabbitmq-email.git
 cd rabbitmq-email
-make RABBITMQ_VERSION=v3.9.10
+make
 make tests # optional
-make dist
+make RABBITMQ_VERSION=v3.9.13 dist
 ```
 
 Copy the following directories to your RabbitMQ `plugins/` directory:
@@ -34,10 +34,10 @@ Copy the following directories to your RabbitMQ `plugins/` directory:
 ```
 plugins/eiconv-1.0.0
 plugins/gen_smtp-1.1.1
-plugins/rabbitmq_email-1.0.0
+plugins/rabbitmq_email-1.0.1
 ```
 
-Note that as of version 1.0.0 this plugin has been tested with RabbitMQ v3.9.x versions only.
+Note that as of version 1.0.1 this plugin has been tested with RabbitMQ v3.9.x versions only.
 
 ## Documentation
 
