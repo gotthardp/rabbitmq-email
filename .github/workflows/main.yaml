@@ -11,15 +11,13 @@ on:
 jobs:
   CI:
     name: Build and test on Erlang/OTP ${{ matrix.otp-version }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         otp-version: [23, 24]
-    env:
-      LATEST_OTP_RELEASE: 24
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.otp-version}}

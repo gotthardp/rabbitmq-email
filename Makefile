@@ -7,7 +7,7 @@ DEP_RANCH_VERSION = 2.1.0
 
 dep_ranch = ranch $(DEP_RANCH_VERSION)
 dep_eiconv = hex 1.0.0
-dep_gen_smtp = git https://github.com/gen-smtp/gen_smtp.git master
+dep_gen_smtp = git https://github.com/gen-smtp/gen_smtp.git 1.1.1
 
 DEPS = gen_smtp rabbit_common amqp_client rabbit eiconv
 
