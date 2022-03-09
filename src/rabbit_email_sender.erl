@@ -20,13 +20,7 @@ send_email(To, Domain, {Type, Subtype}, Headers, Payload) ->
         {<<"To">>, ToAddr}],
 
     Headers3 = lists:foldr(fun set_header/2, [], Headers2),
-    % Note FUTURE for gen_smtp 1.2.0:
-    % mimemail:encode argument:
-    % {Type, Subtype, Headers, ContentTypeParams, Parts}
-    % https://github.com/gen-smtp/gen_smtp/pull/190
-    % https://github.com/gen-smtp/gen_smtp/blob/1.1.1/src/mimemail.erl#L82-L89
-    % https://github.com/gen-smtp/gen_smtp/blob/c6f25a758d60da9788bf5ddf73e985dacb28f74b/src/mimemail.erl#L98-L108
-    Message = mimemail:encode({Type, Subtype, Headers3, [], Payload}),
+    Message = mimemail:encode({Type, Subtype, Headers3, #{}, Payload}),
 
     % client_sender must be a valid user, whereas From doesn't have to
     {ok, Sender} = application:get_env(rabbitmq_email, client_sender),
