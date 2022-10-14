@@ -1,6 +1,6 @@
 PROJECT = rabbitmq_email
 PROJECT_DESCRIPTION = RabbitMQ plugin that converts incoming emails into messages and messages into outgoing emails
-RABBITMQ_VERSION ?= v3.9.x
+RABBITMQ_VERSION ?= v3.11.x
 
 # Note: must be the same version as in rabbitmq-components.mk
 DEP_RANCH_VERSION = 2.1.0
@@ -40,13 +40,6 @@ distclean:: delete-test/system_SUITE_data/samples.zip
 	@:
 
 include rabbitmq-components.mk
-
-dep_amqp_client                = git_rmq-subfolder rabbitmq-erlang-client $(RABBITMQ_VERSION)
-dep_rabbit_common              = git_rmq-subfolder rabbitmq-common $(RABBITMQ_VERSION)
-dep_rabbit                     = git_rmq-subfolder rabbitmq-server $(RABBITMQ_VERSION)
-dep_rabbitmq_ct_client_helpers = git_rmq-subfolder rabbitmq-ct-client-helpers $(RABBITMQ_VERSION)
-dep_rabbitmq_ct_helpers        = git_rmq-subfolder rabbitmq-ct-helpers $(RABBITMQ_VERSION)
-
 include erlang.mk
 
 autopatch-gen_smtp::

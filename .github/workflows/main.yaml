@@ -15,13 +15,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp-version: [23, 24]
+        otp-version: [23, 24, 25]
+        elixir-version: ['1.14']
     steps:
       - uses: actions/checkout@v3
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: ${{matrix.otp-version}}
-          elixir-version: 1.11.4
+          otp-version: ${{ matrix.otp-version }}
+          elixir-version: ${{ matrix.elixir-version }}
       - name: Compile
         run: make
       - name: Test
