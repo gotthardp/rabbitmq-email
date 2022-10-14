@@ -23,6 +23,7 @@
     options = [] :: list() }).
 
 -define(AUTH_REQUIRED, "530 SMTP authentication is required").
+-define(DEFAULT_MAXSIZE, 10485760). % 10MiB
 
 init(Hostname, SessionCount, Address, Options) when SessionCount < 20 ->
     rabbit_log:info("~s SMTP connection from ~p~n", [Hostname, Address]),
@@ -44,18 +45,22 @@ handle_HELO(Hostname, State) ->
             {ok, 655360, set_user_as_anonymous(State)}; % 640kb should be enough for anyone
         _Else ->
             % we expect EHLO will come
-            {ok, State} % use the default 10mb limit
+            MaxSize = application:get_env(rabbitmq_email, server_maxsize, ?DEFAULT_MAXSIZE),
+            {ok, MaxSize, State}
     end.
 
-handle_EHLO(Hostname, Extensions, State) ->
+handle_EHLO(Hostname, Ext0, State0) ->
     rabbit_log:info("EHLO from ~s~n", [Hostname]),
-    ExtensionsTLS = starttls_extension(Extensions),
-    case application:get_env(rabbitmq_email, server_auth) of
-        {ok, false} ->
-            {ok, ExtensionsTLS, set_user_as_anonymous(State)};
-        {ok, rabbitmq} ->
-            {ok, [{"AUTH", "PLAIN LOGIN"} | ExtensionsTLS], State}
-    end.
+    Ext1 = starttls_extension(Ext0),
+    MaxSize = application:get_env(rabbitmq_email, server_maxsize, ?DEFAULT_MAXSIZE),
+    Ext2 = [{"SIZE", integer_to_list(MaxSize)} | Ext1],
+    {Ext3, State1} = case application:get_env(rabbitmq_email, server_auth) of
+                         {ok, false} ->
+                             {Ext2, set_user_as_anonymous(State0)};
+                         {ok, rabbitmq} ->
+                             {[{"AUTH", "PLAIN LOGIN"} | Ext2], State0}
+                     end,
+    {ok, Ext3, State1}.
 
 set_user_as_anonymous(State) ->
     State#state{auth_user=anonymous}.
