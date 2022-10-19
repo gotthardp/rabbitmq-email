@@ -20,6 +20,7 @@
         ]},
         {server_auth, rabbitmq},
         {server_starttls, false},
+        {server_maxsize, 10485760}, % 10MiB
         {email_domains,
             [{<<"example.com">>, {<<"/">>, <<"email-in">>}}
         ]},

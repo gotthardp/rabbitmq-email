@@ -17,16 +17,22 @@ contributions are encouraged.
 
 [![Build Status](https://github.com/gotthardp/rabbitmq-email/actions/workflows/main.yaml/badge.svg?branch=master)](https://github.com/gotthardp/rabbitmq-email/actions)
 
+
+## RabbitMQ and Erlang Compatibility
+
+**Note:** As of version `1.1.0`, this plugin has been tested with RabbitMQ `v3.11.x` versions and Erlang/OTP `25.x`
+
+
 ## Installation
 
-Due to the dependency on the `eiconv` library, which has a C source code component, this plugin must be compiled from source. If you are planning to use RabbitMQ version 3.9.13:
+Due to the dependency on the `eiconv` library, which has a C source code component, this plugin must be compiled from source. If you are planning to use RabbitMQ version `3.11.1`:
 
 ```
 git clone https://github.com/gotthardp/rabbitmq-email.git
 cd rabbitmq-email
 make
 make tests # optional
-make RABBITMQ_VERSION=v3.9.13 dist
+make RABBITMQ_VERSION=v3.11.1 dist
 ```
 
 Copy the following directories to your RabbitMQ `plugins/` directory:
@@ -36,8 +42,6 @@ plugins/eiconv-1.0.0
 plugins/gen_smtp-1.1.1
 plugins/rabbitmq_email-1.0.1
 ```
-
-Note that as of version 1.0.1 this plugin has been tested with RabbitMQ v3.9.x versions only.
 
 ## Documentation
 
@@ -287,6 +291,12 @@ since this is a NIF (native code) its module is not portable between platforms.
 
 ### Change Log
 
+* 1.1.0 (Oct 18, 2022)
+  * Compatibility with recent RabbitMQ versions.
+    * `3.11.x`
+    * `3.10.x`
+  * Update `gen_smtp` to `1.2.0`
+  * Add ability to set max message size in [PR #54](https://github.com/gotthardp/rabbitmq-email/pull/54)
 * 1.0.0 (Nov 23, 2021)
   * Compatibility with recent RabbitMQ versions.
     * `3.9.x`

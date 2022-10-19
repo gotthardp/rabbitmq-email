@@ -1,4 +1,4 @@
-name: Build
+name: rabbitmq-email
 
 on:
   pull_request:
@@ -10,12 +10,12 @@ on:
 
 jobs:
   CI:
-    name: Build and test on Erlang/OTP ${{ matrix.otp-version }}
+    name: build/test on Erlang/OTP ${{ matrix.otp-version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        otp-version: [23, 24, 25]
+        otp-version: [25]
         elixir-version: ['1.14']
     steps:
       - uses: actions/checkout@v3

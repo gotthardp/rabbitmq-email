@@ -149,18 +149,18 @@ filter_email(Config, Filename, Expect) ->
                                         routing_key = <<"">>}),
     %% send an e-mail
     {ok, Email} = read_data_sample(Config, Filename),
-    ct:pal("Read a sample from ~s", [Filename]),
+    ct:pal("Read a sample from ~ts", [Filename]),
     Res = case gen_smtp_client:send_blocking({"whatever@example.com", ["test@example.com"], Email},
                 [{relay, "127.0.0.1"}, {port, 2525}, {username, "guest"}, {password, "guest"}]) of
         Answer when is_binary(Answer) ->
             % expect a delivery
-            ct:pal("SMTP server response: ~p, will wait for a delivery...", [Answer]),
+            ct:pal("SMTP server response: ~tp, will wait for a delivery...", [Answer]),
             wait_for_message(Ch, Queue, 500, Expect);
         {error, Reason} ->
-            ct:pal("SMTP server reported an error: ~p...", [Reason]),
+            ct:pal("SMTP server reported an error: ~tp...", [Reason]),
             expect_error(Reason, Expect);
         {error, _, Reason} ->
-            ct:pal("SMTP server reported an error: ~p...", [Reason]),
+            ct:pal("SMTP server reported an error: ~tp...", [Reason]),
             expect_error(Reason, Expect)
     end,
     rabbit_ct_client_helpers:close_channel(Ch),
@@ -181,13 +181,13 @@ wait_for_message(Ch, Queue, Wait, Expect) ->
 expect(#'P_basic'{content_type = Expected}, {content_type, Expected}) ->
     true;
 expect(#'P_basic'{content_type = Received}, {content_type, Expected}) ->
-    ct:pal("Content-Type mismatch: expected ~s, received ~s", [Expected, Received]),
+    ct:pal("Content-Type mismatch: expected ~ts, received ~ts", [Expected, Received]),
     false;
 
 expect(#'P_basic'{headers = Headers}, {Header, undefined}) ->
     case lists:keyfind(Header, 1, Headers) of
         {_,_,Received} ->
-            ct:pal("~s not expected: received ~s", [Header, Received]),
+            ct:pal("~ts not expected: received ~ts", [Header, Received]),
             false;
         false ->
             true
@@ -198,10 +198,10 @@ expect(#'P_basic'{headers = Headers}, {Header, Expected}) ->
         {_,_,Expected} ->
             true;
         {_,_,Received} ->
-            ct:pal("~s mismatch: expected ~s, received ~s", [Header, Expected, Received]),
+            ct:pal("~ts mismatch: expected ~ts, received ~ts", [Header, Expected, Received]),
             false;
         false ->
-            ct:pal("~s missing, expected ~s", [Header, Expected]),
+            ct:pal("~ts missing, expected ~ts", [Header, Expected]),
             false
     end;
 
@@ -214,5 +214,5 @@ expect_error(_Reason, error) ->
 expect_error(_Reason, {error, _}) ->
     true;
 expect_error(Reason, Expected) ->
-    ct:pal("unexpected error, expected ~p, received ~p", [Expected, Reason]),
+    ct:pal("unexpected error, expected ~tp, received ~tp", [Expected, Reason]),
     false.
