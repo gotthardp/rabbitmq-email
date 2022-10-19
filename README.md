@@ -291,7 +291,7 @@ since this is a NIF (native code) its module is not portable between platforms.
 
 ### Change Log
 
-* 1.1.0 (Oct 18, 2022)
+* [1.1.0 (Oct 19, 2022)](https://github.com/gotthardp/rabbitmq-email/milestone/4?closed=1)
   * Compatibility with recent RabbitMQ versions.
     * `3.11.x`
     * `3.10.x`

@@ -9,7 +9,7 @@
 
 {application, rabbitmq_email,
     [{description, " E-mail gateway for AMQP 0-9-1"},
-    {vsn, "1.0.1"},
+    {vsn, "1.1.0"},
     {modules, []},
     {registered, []},
     {mod, {rabbitmq_email_app, []}},
