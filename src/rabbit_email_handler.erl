@@ -49,23 +49,31 @@ handle_HELO(Hostname, State) ->
             {ok, MaxSize, State}
     end.
 
-handle_EHLO(Hostname, Ext0, State0) ->
+handle_EHLO(Hostname, Extensions0, State0) ->
     rabbit_log:info("EHLO from ~s~n", [Hostname]),
-    Ext1 = starttls_extension(Ext0),
+    Extensions1 = maybe_add_starttls_extension(Extensions0),
+    Extensions2 = add_size_extension(Extensions1),
+    {ok, _Extensions3, _State1} = maybe_add_auth_extension(Extensions2, State0).
+
+add_size_extension(Extensions0) ->
     MaxSize = application:get_env(rabbitmq_email, server_maxsize, ?DEFAULT_MAXSIZE),
-    Ext2 = [{"SIZE", integer_to_list(MaxSize)} | Ext1],
-    {Ext3, State1} = case application:get_env(rabbitmq_email, server_auth) of
-                         {ok, false} ->
-                             {Ext2, set_user_as_anonymous(State0)};
-                         {ok, rabbitmq} ->
-                             {[{"AUTH", "PLAIN LOGIN"} | Ext2], State0}
-                     end,
-    {ok, Ext3, State1}.
+    Extensions1 = lists:keydelete("SIZE", 1, Extensions0),
+    [{"SIZE", integer_to_list(MaxSize)} | Extensions1].
+
+maybe_add_auth_extension(Extensions0, State0) ->
+    case application:get_env(rabbitmq_email, server_auth) of
+        {ok, false} ->
+            State1 = set_user_as_anonymous(State0),
+            {ok, Extensions0, State1};
+        {ok, rabbitmq} ->
+            Extensions1 = [{"AUTH", "PLAIN LOGIN"} | Extensions0],
+            {ok, Extensions1, State0}
+    end.
 
 set_user_as_anonymous(State) ->
     State#state{auth_user=anonymous}.
 
-starttls_extension(Extensions) ->
+maybe_add_starttls_extension(Extensions) ->
     case application:get_env(rabbitmq_email, server_starttls) of
         {ok, false} -> Extensions;
         {ok, true} -> [{"STARTTLS", true} | Extensions]
