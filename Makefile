@@ -26,19 +26,6 @@ ERLANG_MK_COMMIT = rabbitmq-tmp
 # Testing.
 # --------------------------------------------------------------------
 
-test-build:: test/system_SUITE_data/samples.zip
-
-test/system_SUITE_data/samples.zip:
-	$(gen_verbose) curl -L http://www.hunnysoft.com/mime/samples/samples.zip --output $@
-	$(gen_verbose) unzip $@ -d $(@D) || true
-
-.PHONY: delete-test/system_SUITE_data/samples.zip
-delete-test/system_SUITE_data/samples.zip:
-	$(gen_verbose) rm -rf system_SUITE_data/samples*
-
-distclean:: delete-test/system_SUITE_data/samples.zip
-	@:
-
 include rabbitmq-components.mk
 include erlang.mk
 

@@ -18,5 +18,4 @@ plugins/
 sbin/
 tmp/
 
-test/system_SUITE_data/samples*
 test/TEST-*.xml
