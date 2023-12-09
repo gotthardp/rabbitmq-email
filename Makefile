@@ -1,6 +1,6 @@
 PROJECT = rabbitmq_email
 PROJECT_DESCRIPTION = RabbitMQ plugin that converts incoming emails into messages and messages into outgoing emails
-RABBITMQ_VERSION ?= v3.11.x
+RABBITMQ_VERSION ?= v3.12.x
 
 # Note: must be the same version as in rabbitmq-components.mk
 DEP_RANCH_VERSION = 2.1.0
